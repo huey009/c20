@@ -3152,8 +3152,8 @@ server.listen(PORT, () => {
 });
 
 // ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
-webRTCServer.listen(WEBRTC_PORT, '0.0.0.0', () => {
-    console.log(`[WebRTC] 🌐 WebSocket signaling server running on ws://0.0.0.0:${WEBRTC_PORT}`);
+webRTCServer.listen(WEBRTC_PORT, '127.0.0.1', () => {
+    console.log(`[WebRTC] 🌐 WebSocket signaling server running on ws://127.0.0.1:${WEBRTC_PORT}`);
     console.log(`[WebRTC] 📡 Clients can connect to: ws://localhost:${WEBRTC_PORT}`);
 });
 
@@ -3162,8 +3162,8 @@ webRTCServer.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
         const newPort = WEBRTC_PORT + 1;
         console.log(`[WebRTC] 🔄 Port ${WEBRTC_PORT} in use, trying ${newPort}...`);
-        webRTCServer.listen(newPort, '0.0.0.0', () => {
-            console.log(`[WebRTC] 🌐 WebSocket signaling server running on ws://0.0.0.0:${newPort}`);
+        webRTCServer.listen(newPort, '127.0.0.1', () => {
+            console.log(`[WebRTC] 🌐 WebSocket signaling server running on ws://127.0.0.1:${newPort}`);
         });
     }
 });
