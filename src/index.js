@@ -1230,7 +1230,7 @@ res.json({
             urls: [
                 'stun:173.194.222.127:19302',
                 'stun:162.125.32.130:3478',
-                'stun:stun.stunprotocol.org:3478'
+              
             ] 
         }
     ],
@@ -1340,7 +1340,7 @@ app.get('/api/hvnc_webrtc/stream/:agentId', verifyToken, (req, res) => {
             urls: [
                 'stun:173.194.222.127:19302',
                 'stun:162.125.32.130:3478',
-                'stun:stun.stunprotocol.org:3478'
+              
             ] 
         }
     ],
@@ -1631,7 +1631,7 @@ app.get('/api/hvnc_explorer/stream/:agentId', verifyToken, (req, res) => {
             urls: [
                 'stun:173.194.222.127:19302',
                 'stun:162.125.32.130:3478',
-                'stun:stun.stunprotocol.org:3478'
+              
             ] 
         }
     ],
