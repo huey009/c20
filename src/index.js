@@ -687,16 +687,16 @@ app.use('/api/tasks/pending/*', agentLimiter);
 
 app.use((req, res, next) => {
   res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
-    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
-    "img-src 'self' data: https:; " +
-    "connect-src 'self' window.location.origin ws://driveone.online:8082 wss://driveone.online:8082; " +  // ← ADD THIS
-    "frame-src 'none'; " +
-    "object-src 'none';"
-  );
+  'Content-Security-Policy',
+  "default-src 'self'; " +
+  "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; " +
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+  "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
+  "img-src 'self' data: https:; " +
+  "connect-src 'self' ws://driveone.online wss://driveone.online; " +
+  "frame-src 'none'; " +
+  "object-src 'none';"
+);
   next();
 });
 
@@ -3152,19 +3152,16 @@ server.listen(PORT, () => {
 });
 
 // ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
+// ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
 webRTCServer.listen(WEBRTC_PORT, '127.0.0.1', () => {
-    console.log(`[WebRTC] 🌐 WebSocket signaling server running on ws://127.0.0.1:${WEBRTC_PORT}`);
-    console.log(`[WebRTC] 📡 Clients can connect to: ws://localhost:${WEBRTC_PORT}`);
+    console.log(`[WebRTC] WebSocket signaling server running on ws://127.0.0.1:${WEBRTC_PORT}`);
 });
 
 webRTCServer.on('error', (err) => {
-    console.error('[WebRTC] ❌ Server error:', err);
+    console.error('[WebRTC] Server error:', err);
     if (err.code === 'EADDRINUSE') {
-        const newPort = WEBRTC_PORT + 1;
-        console.log(`[WebRTC] 🔄 Port ${WEBRTC_PORT} in use, trying ${newPort}...`);
-        webRTCServer.listen(newPort, '127.0.0.1', () => {
-            console.log(`[WebRTC] 🌐 WebSocket signaling server running on ws://127.0.0.1:${newPort}`);
-        });
+        console.error(`[WebRTC] Port ${WEBRTC_PORT} is already in use. Kill the old process or change WEBRTC_PORT.`);
+        process.exit(1);  // fail loudly instead of silently moving ports
     }
 });
 
