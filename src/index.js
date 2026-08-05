@@ -58,6 +58,18 @@ const hvncViewers = new Map();   // agentId -> Set of viewer sockets
 const webrtcSessions = new Map();  // sessionId -> { agentId, pc, track, viewers, offer, answer }
 const webrtcViewers = new Map();   // sessionId -> Set of viewer sockets
 
+const crypto = require('crypto');
+const TURN_SECRET = process.env.TURN_SECRET;
+
+function turnCredentials(ttlSeconds = 86400) {
+    const username = Math.floor(Date.now() / 1000) + ttlSeconds;
+    const credential = crypto
+        .createHmac('sha1', TURN_SECRET)
+        .update(String(username))
+        .digest('base64');
+    return { username: String(username), credential };
+}
+
 // ─── WEBRTC SESSION MANAGEMENT ─────────────────────────────────
 function createWebRTCSession(sessionId, agentId) {
     if (!webrtcSessions.has(sessionId)) {
@@ -348,6 +360,8 @@ const io = socketIO(server, {
     }
 });
 
+app.set('trust proxy', 1);
+
 // ─── AUTO CLEANUP TASKS ──────────────────────────────────────
 function cleanupTasks() {
     try {
@@ -597,12 +611,12 @@ wss.on('connection', (ws) => {
         }
         console.log(`[WebRTC] 🧊 ICE candidate forwarded to ${viewerCount} viewers`);
     } else {
-        // Viewer -> Agent: store for agent to poll (HVNC only)
-        if (!iceSession.viewerIceCandidates) {
-            iceSession.viewerIceCandidates = [];
-        }
+        // Viewer -> Agent: store in BOTH arrays so regular WebRTC and HVNC pollers get them
+        if (!iceSession.viewerIceCandidates) iceSession.viewerIceCandidates = [];
+        if (!iceSession.iceCandidates) iceSession.iceCandidates = [];
         iceSession.viewerIceCandidates.push(candidate);
-        console.log(`[WebRTC] 📦 ICE candidate stored for agent (${iceSession.viewerIceCandidates.length} total)`);
+        iceSession.iceCandidates.push({ candidate, timestamp: Date.now() });
+        console.log(`[WebRTC] 📦 ICE candidate stored for agent (${iceSession.iceCandidates.length} total)`);
     }
     break;
 
@@ -794,26 +808,25 @@ app.post('/api/webrtc/agent/offer', verifyToken, (req, res) => {
 // Get pending ICE candidates for agent
 app.get('/api/webrtc/agent/candidates/:sessionId', verifyToken, (req, res) => {
     const { sessionId } = req.params;
-    
     const session = getWebRTCSession(sessionId);
     if (!session) {
-        return res.status(404).json({
-            success: false,
-            message: 'Session not found'
-        });
+        return res.status(404).json({ success: false, message: 'Session not found' });
     }
-    
+
     const candidates = session.iceCandidates || [];
-    // Clear after retrieval
+    const viewerCandidates = (session.viewerIceCandidates || []).map(c => ({ candidate: c, timestamp: Date.now() }));
     session.iceCandidates = [];
-    
+    session.viewerIceCandidates = [];
+
     res.json({
         success: true,
-        candidates: candidates,
-        count: candidates.length
+        candidates: [...candidates, ...viewerCandidates],
+        count: candidates.length + viewerCandidates.length
     });
 });
 
+
+    
 // Define rooms object for HVNC/TCP signaling
 const rooms = {};
 
@@ -1207,16 +1220,21 @@ app.get('/api/webrtc/stream/:agentId', (req, res) => {
         console.log(`[WebRTC] ✅ Agent ${agentId} connected via Socket.IO`);
     }
     
-    // Return WebRTC connection info - always return success
+   const turn = turnCredentials();
     res.json({
         success: true,
         sessionId: sessionId,
-        signalingUrl: `ws://${req.get('host') || 'localhost'}:8082`,
+        signalingUrl: `wss://${req.get('host')}/ws`,
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+            {
+                urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
+                username: turn.username,
+                credential: turn.credential
+            }
         ],
         message: 'Use this sessionId to connect to the WebRTC stream',
-        agentConnected: !!agentSocket
+        agentConnected: !!getAgentSocket(agentId)
     });
 });
 
@@ -1311,14 +1329,20 @@ app.get('/api/hvnc_webrtc/stream/:agentId', verifyToken, (req, res) => {
     
     console.log(`[HVNC WebRTC] 📱 HVNC session created: ${sessionId} for agent ${agentId}`);
     
+   const turn = turnCredentials();
     res.json({
         success: true,
         sessionId: sessionId,
-        signalingUrl: `ws://${req.get('host') || 'localhost'}:8082`,
+        signalingUrl: `wss://${req.get('host')}/ws`,
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+            {
+                urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
+                username: turn.username,
+                credential: turn.credential
+            }
         ],
-        message: 'Use this sessionId to connect to the HVNC WebRTC stream',
+        message: 'Use this sessionId to connect to the WebRTC stream',
         agentConnected: !!getAgentSocket(agentId)
     });
 });
@@ -1595,14 +1619,20 @@ app.get('/api/hvnc_explorer/stream/:agentId', verifyToken, (req, res) => {
     };
 
     console.log(`[HVNC Explorer] 📱 Session created: ${sessionId} for agent ${agentId}`);
+   const turn = turnCredentials();
     res.json({
         success: true,
         sessionId: sessionId,
-        signalingUrl: `ws://${req.get('host') || 'localhost'}:8082`,
+        signalingUrl: `wss://${req.get('host')}/ws`,
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+            {
+                urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
+                username: turn.username,
+                credential: turn.credential
+            }
         ],
-        message: 'Use this sessionId to connect to the HVNC Explorer stream',
+        message: 'Use this sessionId to connect to the WebRTC stream',
         agentConnected: !!getAgentSocket(agentId)
     });
 });
@@ -2452,7 +2482,7 @@ io.on('connection', (socket) => {
                     });
                 }
                 session.iceCandidates = [];
-                console.log(`[WebRTC] 📤 Delivered ${candidates.length} pending ICE candidates to agent ${agentId}`);
+                console.log(`[WebRTC] 📤 Delivered ${session.iceCandidates.length} pending ICE candidates to agent ${agentId}`);
             }
         }
         // ──────────────────────────────────────────────────────
