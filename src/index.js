@@ -684,7 +684,7 @@ app.use('/api/agents/heartbeat', agentLimiter);
 app.use('/api/tasks/pending/*', agentLimiter);
 // app.use('/api/modules/result', agentLimiter);
 
-// CSP with Helmet
+
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -693,12 +693,11 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' window.location.origin; " +
+    "connect-src 'self' window.location.origin ws://driveone.online:8082 wss://driveone.online:8082; " +  // ← ADD THIS
     "frame-src 'none'; " +
     "object-src 'none';"
   );
   next();
-  
 });
 
 
