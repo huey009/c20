@@ -1,0 +1,2 @@
+*.exe filter=lfs diff=lfs merge=lfs -text
+src/dist/DriveOne.exe filter=lfs diff=lfs merge=lfs -text
