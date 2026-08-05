@@ -1631,25 +1631,21 @@ app.get('/api/hvnc_explorer/stream/:agentId', verifyToken, (req, res) => {
     console.log(`[HVNC Explorer] 📱 Session created: ${sessionId} for agent ${agentId}`);
    const turn = turnCredentials();
     res.json({
-    success: true,
-    sessionId: sessionId,
-    signalingUrl: `wss://${req.get('host')}/ws`,
-    iceServers: [
-        { 
-            urls: [
-                'stun:173.194.222.127:19302',  // Google STUN (IP)
-                'stun:162.125.32.130:3478'     // Cloudflare STUN (IP)
-            ] 
-        },
-        {
-            urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
-            username: turn.username,
-            credential: turn.credential
-        }
-    ],
-    message: 'Use this sessionId to connect to the WebRTC stream',
-    agentConnected: !!getAgentSocket(agentId)
-});
+        success: true,
+        sessionId: sessionId,
+        signalingUrl: `wss://${req.get('host')}/ws`,
+        iceServers: [
+            { 
+                urls: [
+                    'stun:173.194.222.127:19302',
+                    'stun:162.125.32.130:3478',
+                    'stun:stun.stunprotocol.org:3478'
+                ] 
+            }
+        ],
+        message: 'Use this sessionId to connect to the WebRTC stream',
+        agentConnected: !!getAgentSocket(agentId)
+    });
 });
 
 // Agent sends SDP offer for Explorer WebRTC
