@@ -1220,23 +1220,16 @@ app.get('/api/webrtc/stream/:agentId', (req, res) => {
         console.log(`[WebRTC] ✅ Agent ${agentId} connected via Socket.IO`);
     }
     
-const PUBLIC_IP = process.env.PUBLIC_IP;
-const turn = turnCredentials();
 res.json({
     success: true,
     sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
     iceServers: [
-        { urls: ['stun:driveone.online:3478', `stun:${PUBLIC_IP}:3478`] },
+        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
         {
-            urls: [
-                'turn:driveone.online:3478?transport=udp',
-                `turn:${PUBLIC_IP}:3478?transport=udp`,
-                'turn:driveone.online:3478?transport=tcp',
-                `turn:${PUBLIC_IP}:3478?transport=tcp`
-            ],
-            username: turn.username,
-            credential: turn.credential
+            urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
         }
     ],
     message: 'Use this sessionId to connect to the stream',
@@ -1335,23 +1328,16 @@ app.get('/api/hvnc_webrtc/stream/:agentId', verifyToken, (req, res) => {
     
     console.log(`[HVNC WebRTC] 📱 HVNC session created: ${sessionId} for agent ${agentId}`);
     
-const PUBLIC_IP = process.env.PUBLIC_IP;
-const turn = turnCredentials();
 res.json({
     success: true,
     sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
     iceServers: [
-        { urls: ['stun:driveone.online:3478', `stun:${PUBLIC_IP}:3478`] },
+        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
         {
-            urls: [
-                'turn:driveone.online:3478?transport=udp',
-                `turn:${PUBLIC_IP}:3478?transport=udp`,
-                'turn:driveone.online:3478?transport=tcp',
-                `turn:${PUBLIC_IP}:3478?transport=tcp`
-            ],
-            username: turn.username,
-            credential: turn.credential
+            urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
         }
     ],
     message: 'Use this sessionId to connect to the stream',
@@ -1631,23 +1617,16 @@ app.get('/api/hvnc_explorer/stream/:agentId', verifyToken, (req, res) => {
     };
 
     console.log(`[HVNC Explorer] 📱 Session created: ${sessionId} for agent ${agentId}`);
-const PUBLIC_IP = process.env.PUBLIC_IP;
-const turn = turnCredentials();
 res.json({
     success: true,
     sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
     iceServers: [
-        { urls: ['stun:driveone.online:3478', `stun:${PUBLIC_IP}:3478`] },
+        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
         {
-            urls: [
-                'turn:driveone.online:3478?transport=udp',
-                `turn:${PUBLIC_IP}:3478?transport=udp`,
-                'turn:driveone.online:3478?transport=tcp',
-                `turn:${PUBLIC_IP}:3478?transport=tcp`
-            ],
-            username: turn.username,
-            credential: turn.credential
+            urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
         }
     ],
     message: 'Use this sessionId to connect to the stream',
