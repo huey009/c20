@@ -1220,25 +1220,26 @@ app.get('/api/webrtc/stream/:agentId', (req, res) => {
         console.log(`[WebRTC] ✅ Agent ${agentId} connected via Socket.IO`);
     }
     
- const turn = turnCredentials();
+const PUBLIC_IP = process.env.PUBLIC_IP;
+const turn = turnCredentials();
 res.json({
     success: true,
-    sessionId: sessionId,
+    sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
     iceServers: [
-        { 
-            urls: [
-                'stun:173.194.222.127:19302',
-                'stun:162.125.32.130:3478'
-            ] 
-        },
+        { urls: ['stun:driveone.online:3478', `stun:${PUBLIC_IP}:3478`] },
         {
-            urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
+            urls: [
+                'turn:driveone.online:3478?transport=udp',
+                `turn:${PUBLIC_IP}:3478?transport=udp`,
+                'turn:driveone.online:3478?transport=tcp',
+                `turn:${PUBLIC_IP}:3478?transport=tcp`
+            ],
             username: turn.username,
             credential: turn.credential
         }
     ],
-    message: 'Use this sessionId to connect to the HVNC Explorer stream',
+    message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
 });
 });
@@ -1334,25 +1335,26 @@ app.get('/api/hvnc_webrtc/stream/:agentId', verifyToken, (req, res) => {
     
     console.log(`[HVNC WebRTC] 📱 HVNC session created: ${sessionId} for agent ${agentId}`);
     
+const PUBLIC_IP = process.env.PUBLIC_IP;
 const turn = turnCredentials();
 res.json({
     success: true,
-    sessionId: sessionId,
+    sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
     iceServers: [
-        { 
-            urls: [
-                'stun:173.194.222.127:19302',
-                'stun:162.125.32.130:3478'
-            ] 
-        },
+        { urls: ['stun:driveone.online:3478', `stun:${PUBLIC_IP}:3478`] },
         {
-            urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
+            urls: [
+                'turn:driveone.online:3478?transport=udp',
+                `turn:${PUBLIC_IP}:3478?transport=udp`,
+                'turn:driveone.online:3478?transport=tcp',
+                `turn:${PUBLIC_IP}:3478?transport=tcp`
+            ],
             username: turn.username,
             credential: turn.credential
         }
     ],
-    message: 'Use this sessionId to connect to the HVNC Explorer stream',
+    message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
 });
 });
@@ -1629,25 +1631,26 @@ app.get('/api/hvnc_explorer/stream/:agentId', verifyToken, (req, res) => {
     };
 
     console.log(`[HVNC Explorer] 📱 Session created: ${sessionId} for agent ${agentId}`);
-  const turn = turnCredentials();
+const PUBLIC_IP = process.env.PUBLIC_IP;
+const turn = turnCredentials();
 res.json({
     success: true,
-    sessionId: sessionId,
+    sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
     iceServers: [
-        { 
-            urls: [
-                'stun:173.194.222.127:19302',
-                'stun:162.125.32.130:3478'
-            ] 
-        },
+        { urls: ['stun:driveone.online:3478', `stun:${PUBLIC_IP}:3478`] },
         {
-            urls: ['turn:driveone.online:3478', 'turns:driveone.online:5349'],
+            urls: [
+                'turn:driveone.online:3478?transport=udp',
+                `turn:${PUBLIC_IP}:3478?transport=udp`,
+                'turn:driveone.online:3478?transport=tcp',
+                `turn:${PUBLIC_IP}:3478?transport=tcp`
+            ],
             username: turn.username,
             credential: turn.credential
         }
     ],
-    message: 'Use this sessionId to connect to the HVNC Explorer stream',
+    message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
 });
 });
