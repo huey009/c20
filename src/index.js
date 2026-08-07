@@ -2955,6 +2955,19 @@ app.get('/api/hvnc/frame/:agentId', (req, res) => {
     }
 });
 
+
+// ─── POLLING ENDPOINT ──────────────────────────────────────────
+app.get('/api/mjpeg/latest', (req, res) => {
+    if (!mjpegState.frame) {
+        return res.status(404).send('No frame');
+    }
+    res.set('Content-Type', 'image/jpeg');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.send(mjpegState.frame);
+});
+
 app.get('/api/hvnc/mjpeg/:agentId', (req, res) => {
     const { agentId } = req.params;
     console.log(`[MJPEG-HVNC] Request for agent: ${agentId}`);
