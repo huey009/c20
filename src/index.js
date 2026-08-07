@@ -2955,7 +2955,6 @@ app.get('/api/hvnc/frame/:agentId', (req, res) => {
     }
 });
 
-
 // ─── POLLING ENDPOINT ──────────────────────────────────────────
 app.get('/api/mjpeg/latest', (req, res) => {
     if (!mjpegState.frame) {
