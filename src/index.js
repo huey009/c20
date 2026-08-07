@@ -70,6 +70,31 @@ function turnCredentials(ttlSeconds = 86400) {
     return { username: String(username), credential };
 }
 
+
+
+// ─── TURN ICE SERVERS (coturn @ driveone.online) ──────────────
+function getIceServers() {
+  if (!TURN_SECRET || TURN_SECRET === '9d8ebd5cbc8149e5a6607460e3729deb380908dcd483456c80af2716eee2be2f') {
+    console.warn('[TURN] TURN_SECRET missing/placeholder - serving STUN only');
+    return [
+      { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
+    ];
+  }
+  const { username, credential } = turnCredentials(3600); // 1h ephemeral creds
+  return [
+    { urls: ['stun:driveone.online:3478', 'stun:stun.l.google.com:19302'] },
+    {
+      urls: [
+        'turn:driveone.online:3478',                // UDP relay
+        'turn:driveone.online:3478?transport=tcp',  // TCP relay (firewall-proof)
+        'turns:driveone.online:5349'                // TLS relay (firewall-proof)
+      ],
+      username,
+      credential
+    }
+  ];
+}
+
 // ─── WEBRTC SESSION MANAGEMENT ─────────────────────────────────
 function createWebRTCSession(sessionId, agentId) {
     if (!webrtcSessions.has(sessionId)) {
@@ -1199,7 +1224,7 @@ app.post('/api/webrtc/stop-agents', verifyToken, (req, res) => {
 // ─── WEBRTC SIGNALING ENDPOINTS ──────────────────────────────────
 
 // Get WebRTC stream URL for an agent
-app.get('/api/webrtc/stream/:agentId', (req, res) => {
+app.get('/api/webrtc/stream/:agentId', verifyToken, (req, res) => {
     const { agentId } = req.params;
     
     console.log(`[WebRTC] 📱 Stream request for agent: ${agentId}`);
@@ -1224,14 +1249,7 @@ res.json({
     success: true,
     sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
-    iceServers: [
-        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-        {
-            urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        }
-    ],
+    iceServers: getIceServers(),
     message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
 });
@@ -1332,14 +1350,7 @@ res.json({
     success: true,
     sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
-    iceServers: [
-        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-        {
-            urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        }
-    ],
+   iceServers: getIceServers(),
     message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
 });
@@ -1621,14 +1632,7 @@ res.json({
     success: true,
     sessionId,
     signalingUrl: `wss://${req.get('host')}/ws`,
-    iceServers: [
-        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-        {
-            urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443'],
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        }
-    ],
+    iceServers: getIceServers(),
     message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
 });
