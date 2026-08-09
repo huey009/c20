@@ -940,16 +940,44 @@ app.get('/api/mjpeg/status', verifyToken, (req, res) => {
     });
 });
 
-// Kill everything: drop all tokens + wipe the frame slot.
+
 app.post('/api/mjpeg/killall', verifyToken, (req, res) => {
+    console.log('[MJPEG] 💀 KILLALL called - stopping all streams');
+
+    // 1) Nuke capability tokens → any in-flight upload now 401s (cheaply)
     uploadTokens.clear();
+    uploadFailures.clear();
+
+    // 2) Wipe the frame slot → viewers get nothing more
     mjpegState.frame = null;
     mjpegState.agentId = null;
     mjpegState.frameCount = 0;
     mjpegState.fps = 0;
     mjpegState.lastFrameTs = 0;
-    console.log('[MJPEG] All streams killed, upload tokens cleared');
-    res.json({ message: 'All streams killed' });
+
+    // 3) Terminate open /api/mjpeg/stream connections
+    for (const r of mjpegStreamClients) { try { if (!r.writableEnded) r.end(); } catch (_) {} }
+    mjpegStreamClients.clear();
+    if (mjpegState.clients !== undefined) mjpegState.clients = 0;
+
+    // 4) THE PART THAT STOPS THE AGENT: queue stop_host for every active agent.
+    //    The agent polls /api/tasks/pending/<id> every ~10s and honors this —
+    //    it's what makes the capture loop exit and the uploads end.
+    const db = require('./database');
+    db.all("SELECT agentId FROM agents WHERE status = 'active'", (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        let tasksCreated = 0;
+        const taskId = Date.now() + '_kill';
+        rows.forEach(row => {
+            db.run(
+                "INSERT INTO tasks (taskId, agentId, type, moduleName, moduleAction, status) VALUES (?, ?, ?, ?, ?, ?)",
+                [taskId + '_' + row.agentId, row.agentId, 'module_action', 'mjpeg', 'stop_host', 'pending'],
+                (err) => { if (!err) tasksCreated++; }
+            );
+        });
+        console.log(`[MJPEG] ✅ Streams killed, stop_host queued for ${rows.length} agent(s)`);
+        res.json({ message: 'All streams killed', agents: rows.length, tasksCreated });
+    });
 });
 
 
