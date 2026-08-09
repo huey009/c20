@@ -105,12 +105,16 @@ router.post('/agent/login', async (req, res) => {
     }
 });
 
+
+
+
 // Verify token middleware
 const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
-    }
+    // in routes/auth.js, inside verifyToken:
+    const authHeader = req.headers.authorization || '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const token = bearer || req.token || req.query.token;   // ← add req.token fallback
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
     
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret_change_this');
