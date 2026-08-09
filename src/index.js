@@ -980,9 +980,7 @@ app.post('/api/mjpeg/killall', verifyToken, (req, res) => {
     mjpegState.fps = 0;
     mjpegState.lastFrameTs = 0;
 
-    // 3) Terminate open /api/mjpeg/stream connections
-    for (const r of mjpegStreamClients) { try { if (!r.writableEnded) r.end(); } catch (_) {} }
-    mjpegStreamClients.clear();
+  
     if (mjpegState.clients !== undefined) mjpegState.clients = 0;
 
     // 4) THE PART THAT STOPS THE AGENT: queue stop_host for every active agent.
