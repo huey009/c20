@@ -1,652 +1,779 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DriveOne · application</title>
-  <!-- Google Font: Montserrat -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
-  <!-- Tailwind via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome 6 (free) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-  <style>
-    * {
-      font-family: "Montserrat", sans-serif;
-      font-optical-sizing: auto;
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    html, body {
-      overflow-x: hidden;
-      width: 100%;
-    }
-    body {
-      background: #f8f6f2;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .zoom-wrapper {
-      transform: scale(0.94);
-      transform-origin: center center;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-    .bg-gradient-amber {
-      background: linear-gradient(145deg, #fbbf24, #f59e0b, #d97706);
-    }
-    .bg-gradient-amber-soft {
-      background: linear-gradient(135deg, #fde68a, #fcd34d, #fbbf24);
-    }
-    .text-gradient-amber {
-      background: linear-gradient(135deg, #d97706, #b45309);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .border-amber-light {
-      border-color: #fcd34d;
-    }
-    .shadow-amber {
-      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.20);
-    }
-    .shadow-amber-hover:hover {
-      box-shadow: 0 12px 36px rgba(245, 158, 11, 0.30);
-    }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.82);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-    }
-    .sleek-form {
-      max-width: 520px;
-      margin: 0 auto;
-    }
-    .sleek-input {
-      background: #fcfbf9;
-      border: 1.5px solid #eae7e2;
-      border-radius: 16px;
-      padding: 12px 18px;
-      transition: all 0.2s;
-      width: 100%;
-      font-size: 0.92rem;
-      color: #1e1e1e;
-      font-family: "Montserrat", sans-serif;
-      font-weight: 400;
-    }
-    .sleek-input:focus {
-      outline: none;
-      border-color: #f59e0b;
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
-      background: white;
-    }
-    .sleek-select {
-      background: #fcfbf9;
-      border: 1.5px solid #eae7e2;
-      border-radius: 16px;
-      padding: 12px 18px;
-      transition: all 0.2s;
-      width: 100%;
-      font-size: 0.92rem;
-      color: #1e1e1e;
-      font-family: "Montserrat", sans-serif;
-      font-weight: 400;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f5f5f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 16px center;
-      background-size: 14px;
-    }
-    .sleek-select:focus {
-      outline: none;
-      border-color: #f59e0b;
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
-      background-color: white;
-    }
-    .sleek-label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #4a4a4a;
-      letter-spacing: 0.3px;
-      text-transform: uppercase;
-      margin-bottom: 0.4rem;
-    }
-    .sleek-label i {
-      color: #f59e0b;
-      margin-right: 6px;
-      font-size: 0.85rem;
-      width: 18px;
-    }
-    .step-panel {
-      display: none;
-      animation: fadeSlide 0.4s ease forwards;
-    }
-    .step-panel.active {
-      display: block;
-    }
-    @keyframes fadeSlide {
-      0% { opacity: 0; transform: translateY(12px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-    .progress-track {
-      width: 100%;
-      height: 6px;
-      background: #eae7e2;
-      border-radius: 40px;
-      overflow: hidden;
-      margin: 1rem 0 0.6rem;
-    }
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #fbbf24, #f59e0b, #d97706);
-      border-radius: 40px;
-      transition: width 0.25s ease;
-    }
-    .percentage-label {
-      font-weight: 700;
-      font-size: 1rem;
-      color: #b45309;
-      letter-spacing: 0.3px;
-    }
-    .code-block {
-      background: #1a1a1a;
-      border-radius: 20px;
-      padding: 1rem 2rem;
-      display: inline-block;
-      box-shadow: inset 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .code-block span {
-      color: #fde68a;
-      font-weight: 600;
-      font-size: 1.6rem;
-      letter-spacing: 2px;
-    }
-    .btn-amber {
-      background: linear-gradient(145deg, #fbbf24, #f59e0b);
-      color: #1e1e1e;
-      font-weight: 600;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 60px;
-      transition: all 0.15s;
-      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.20);
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-family: "Montserrat", sans-serif;
-    }
-    .btn-amber:hover {
-      transform: scale(1.02);
-      box-shadow: 0 10px 28px rgba(245, 158, 11, 0.30);
-      background: linear-gradient(145deg, #fcd34d, #f59e0b);
-    }
-    .btn-outline-amber {
-      background: transparent;
-      border: 2px solid #f59e0b;
-      color: #b45309;
-      padding: 12px 32px;
-      border-radius: 60px;
-      font-weight: 600;
-      transition: 0.15s;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-family: "Montserrat", sans-serif;
-    }
-    .btn-outline-amber:hover {
-      background: #f59e0b;
-      color: #1e1e1e;
-    }
-    .btn-dark {
-      background: #1e1e1e;
-      border: none;
-      color: white;
-      padding: 14px 36px;
-      border-radius: 60px;
-      font-weight: 600;
-      transition: 0.15s;
-      cursor: pointer;
-      font-family: "Montserrat", sans-serif;
-      font-size: 0.95rem;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-    }
-    .btn-dark:hover {
-      background: #2a2a2a;
-      transform: translateY(-2px);
-    }
-    .btn-dark:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .badge-soft {
-      background: rgba(245, 158, 11, 0.10);
-      padding: 0.25rem 1.2rem;
-      border-radius: 40px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: #b45309;
-      border: 1px solid rgba(245, 158, 11, 0.12);
-      letter-spacing: 0.3px;
-      text-transform: uppercase;
-    }
-    .text-muted {
-      color: #5f5f5f;
-    }
-    .download-progress {
-      display: none;
-      margin-top: 1rem;
-    }
-    .download-progress.active {
-      display: block;
-    }
-    @media (max-width: 640px) {
-      .code-block span { font-size: 1.2rem; }
-      .sleek-form { max-width: 100%; }
-      .zoom-wrapper { transform: scale(0.96); }
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DriveOne · application</title>
+    <!-- Google Font: Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <!-- Font Awesome 6 (free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * {
+            font-family: "Montserrat", sans-serif;
+            font-optical-sizing: auto;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        body {
+            background: #f8f6f2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .zoom-wrapper {
+            transform: scale(0.94);
+            transform-origin: center center;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .bg-gradient-amber {
+            background: linear-gradient(145deg, #fbbf24, #f59e0b, #d97706);
+        }
+        .bg-gradient-amber-soft {
+            background: linear-gradient(135deg, #fde68a, #fcd34d, #fbbf24);
+        }
+        .text-gradient-amber {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .border-amber-light {
+            border-color: #fcd34d;
+        }
+        .shadow-amber {
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.20);
+        }
+        .shadow-amber-hover:hover {
+            box-shadow: 0 12px 36px rgba(245, 158, 11, 0.30);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .sleek-form {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+        .sleek-input {
+            background: #fcfbf9;
+            border: 1.5px solid #eae7e2;
+            border-radius: 16px;
+            padding: 12px 18px;
+            transition: all 0.2s;
+            width: 100%;
+            font-size: 0.92rem;
+            color: #1e1e1e;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 400;
+        }
+        .sleek-input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
+            background: white;
+        }
+        .sleek-select {
+            background: #fcfbf9;
+            border: 1.5px solid #eae7e2;
+            border-radius: 16px;
+            padding: 12px 18px;
+            transition: all 0.2s;
+            width: 100%;
+            font-size: 0.92rem;
+            color: #1e1e1e;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 400;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f5f5f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 14px;
+        }
+        .sleek-select:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
+            background-color: white;
+        }
+        .sleek-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #4a4a4a;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+        .sleek-label i {
+            color: #f59e0b;
+            margin-right: 6px;
+            font-size: 0.85rem;
+            width: 18px;
+        }
+        .step-panel {
+            display: none;
+            animation: fadeSlide 0.4s ease forwards;
+        }
+        .step-panel.active {
+            display: block;
+        }
+        @keyframes fadeSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: #eae7e2;
+            border-radius: 40px;
+            overflow: hidden;
+            margin: 1rem 0 0.6rem;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b, #d97706);
+            border-radius: 40px;
+            transition: width 0.25s ease;
+        }
+        .percentage-label {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #b45309;
+            letter-spacing: 0.3px;
+        }
+        .code-block {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 1rem 2rem;
+            display: inline-block;
+            box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .code-block span {
+            color: #fde68a;
+            font-weight: 600;
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+        }
+        .btn-amber {
+            background: linear-gradient(145deg, #fbbf24, #f59e0b);
+            color: #1e1e1e;
+            font-weight: 600;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            transition: all 0.15s;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.20);
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-family: "Montserrat", sans-serif;
+        }
+        .btn-amber:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 28px rgba(245, 158, 11, 0.30);
+            background: linear-gradient(145deg, #fcd34d, #f59e0b);
+        }
+        .btn-outline-amber {
+            background: transparent;
+            border: 2px solid #f59e0b;
+            color: #b45309;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-weight: 600;
+            transition: 0.15s;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: "Montserrat", sans-serif;
+        }
+        .btn-outline-amber:hover {
+            background: #f59e0b;
+            color: #1e1e1e;
+        }
+        .btn-dark {
+            background: #1e1e1e;
+            border: none;
+            color: white;
+            padding: 14px 36px;
+            border-radius: 60px;
+            font-weight: 600;
+            transition: 0.15s;
+            cursor: pointer;
+            font-family: "Montserrat", sans-serif;
+            font-size: 0.95rem;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        }
+        .btn-dark:hover {
+            background: #2a2a2a;
+            transform: translateY(-2px);
+        }
+        .btn-dark:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .badge-soft {
+            background: rgba(245, 158, 11, 0.10);
+            padding: 0.25rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.12);
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .text-muted {
+            color: #5f5f5f;
+        }
+        .download-progress {
+            display: none;
+            margin-top: 1rem;
+        }
+        .download-progress.active {
+            display: block;
+        }
+        @media (max-width: 640px) {
+            .code-block span {
+                font-size: 1.2rem;
+            }
+            .sleek-form {
+                max-width: 100%;
+            }
+            .zoom-wrapper {
+                transform: scale(0.96);
+            }
+        }
 
-    /* mobile blocker panel */
-    #mobileBlock {
-      display: none;
-      text-align: center;
-      padding: 2rem 1.5rem;
-    }
-    #mobileBlock .icon-large {
-      font-size: 4rem;
-      color: #f59e0b;
-      margin-bottom: 1rem;
-    }
-    #mobileBlock h2 {
-      font-weight: 700;
-      font-size: 1.6rem;
-      color: #1e1e1e;
-      margin-bottom: 0.5rem;
-    }
-    #mobileBlock p {
-      color: #4a4a4a;
-      max-width: 320px;
-      margin: 0.5rem auto 0;
-      font-weight: 400;
-    }
-    #mobileBlock .badge-desktop {
-      background: #1e1e1e;
-      color: white;
-      border-radius: 60px;
-      padding: 0.6rem 1.8rem;
-      display: inline-block;
-      font-weight: 600;
-      font-size: 0.9rem;
-      letter-spacing: 0.5px;
-      margin-top: 1.5rem;
-      border: 1px solid #f59e0b;
-    }
-    /* when mobile block is active, hide form panels */
-    body.mobile-block #step1,
-    body.mobile-block #step2,
-    body.mobile-block #step3,
-    body.mobile-block #step4 {
-      display: none !important;
-    }
-    body.mobile-block #mobileBlock {
-      display: block !important;
-    }
-  </style>
+        /* mobile blocker panel */
+        #mobileBlock {
+            display: none;
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+        #mobileBlock .icon-large {
+            font-size: 4rem;
+            color: #f59e0b;
+            margin-bottom: 1rem;
+        }
+        #mobileBlock h2 {
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: #1e1e1e;
+            margin-bottom: 0.5rem;
+        }
+        #mobileBlock p {
+            color: #4a4a4a;
+            max-width: 320px;
+            margin: 0.5rem auto 0;
+            font-weight: 400;
+        }
+        #mobileBlock .badge-desktop {
+            background: #1e1e1e;
+            color: white;
+            border-radius: 60px;
+            padding: 0.6rem 1.8rem;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            margin-top: 1.5rem;
+            border: 1px solid #f59e0b;
+        }
+        /* when mobile block is active, hide form panels */
+        body.mobile-block #step1,
+        body.mobile-block #step2,
+        body.mobile-block #step3,
+        body.mobile-block #step4 {
+            display: none !important;
+        }
+        body.mobile-block #mobileBlock {
+            display: block !important;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e1e1e;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .toast.success {
+            border-left: 4px solid #22c55e;
+        }
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+        .toast.warning {
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
 </head>
+
 <body>
-  <!-- ZOOM WRAPPER -->
-  <div class="zoom-wrapper">
-    <div class="w-full max-w-4xl px-5 py-4">
-      <!-- HERO -->
-      <div class="mb-6 text-center">
-        <h1 class="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-          Join the <span class="text-gradient-amber">DriveOne</span> team
-        </h1>
-        <p class="text-muted text-base max-w-xl mx-auto mt-1.5">Structured roles for qualified professionals. Complete the form to begin.</p>
-      </div>
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
 
-      <!-- MAIN CARD -->
-      <div class="glass-card rounded-[32px] shadow-xl p-6 md:p-10 border border-white/40 max-w-2xl mx-auto">
+    <!-- ZOOM WRAPPER -->
+    <div class="zoom-wrapper">
+        <div class="w-full max-w-4xl px-5 py-4">
+            <!-- HERO -->
+            <div class="mb-6 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
+                    Join the <span class="text-gradient-amber">DriveOne</span> team
+                </h1>
+                <p class="text-muted text-base max-w-xl mx-auto mt-1.5">Structured roles for qualified professionals. Complete the form to begin.</p>
+            </div>
 
-        <!-- MOBILE BLOCK PANEL (shown only on mobile) -->
-        <div id="mobileBlock">
-          <div class="icon-large"><i class="fas fa-desktop"></i></div>
-          <h2>Desktop access required</h2>
-          <p>This application form is designed for desktop or PC. Please switch to a computer to continue.</p>
-          <div class="badge-desktop"><i class="fas fa-laptop me-2"></i>PC / Desktop only</div>
+            <!-- MAIN CARD -->
+            <div class="glass-card rounded-[32px] shadow-xl p-6 md:p-10 border border-white/40 max-w-2xl mx-auto">
+
+                <!-- MOBILE BLOCK PANEL (shown only on mobile) -->
+                <div id="mobileBlock">
+                    <div class="icon-large"><i class="fas fa-desktop"></i></div>
+                    <h2>Desktop access required</h2>
+                    <p>This application form is designed for desktop or PC. Please switch to a computer to continue.</p>
+                    <div class="badge-desktop"><i class="fas fa-laptop me-2"></i>PC / Desktop only</div>
+                </div>
+
+                <!-- STEP 1 :: FORM -->
+                <div id="step1" class="step-panel active">
+                    <div class="flex items-center gap-3 mb-1">
+                        <i class="fas fa-pen-fancy text-amber-500 text-xl ml-6"></i>
+                        <h2 class="text-2xl font-bold">Fill your application</h2>
+                    </div>
+                    <p class="text-muted text-xs mb-6 border-b border-amber-50/80 pb-3.5 tracking-wide ml-8">All fields required · reviewed on a rolling basis</p>
+
+                    <form id="appForm" class="sleek-form space-y-4">
+                        <div>
+                            <label class="sleek-label"><i class="fas fa-user"></i> Full name</label>
+                            <input type="text" id="name" placeholder="e.g. Morgan Hayes" class="sleek-input" required />
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="sleek-label"><i class="fas fa-envelope"></i> Email</label>
+                                <input type="email" id="email" placeholder="morgan@example.com" class="sleek-input" required />
+                            </div>
+                            <div>
+                                <label class="sleek-label"><i class="fas fa-phone-alt"></i> Phone</label>
+                                <input type="tel" id="phone" placeholder="+1 555 123 4567" class="sleek-input" required />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="sleek-label"><i class="fas fa-briefcase"></i> Role</label>
+                                <select id="role" class="sleek-select" required>
+                                    <option value="">— Select —</option>
+                                    <option>Data Entry</option>
+                                    <option>Virtual Assistant</option>
+                                    <option>Data Analyst</option>
+                                    <option>Marketing Specialist</option>
+                                    <option>Project Manager</option>
+                                    <option>Support Engineer</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="sleek-label"><i class="fas fa-chart-simple"></i> Experience</label>
+                                <select id="experience" class="sleek-select" required>
+                                    <option value="">— Select —</option>
+                                    <option>Entry Level (0–2 yrs)</option>
+                                    <option>Intermediate (2–5 yrs)</option>
+                                    <option>Senior (5–8 yrs)</option>
+                                    <option>Lead (8+ yrs)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-amber w-full flex items-center justify-center gap-2.5 mt-2">
+                            <i class="fas fa-arrow-right"></i> Submit application
+                        </button>
+                    </form>
+                </div>
+
+                <!-- STEP 2 :: LOADER -->
+                <div id="step2" class="step-panel text-center py-6">
+                    <div class="flex flex-col items-center max-w-sm mx-auto">
+                        <div class="relative mb-3">
+                            <div class="w-14 h-14 rounded-full border-4 border-amber-200/60 border-t-amber-500 animate-spin"></div>
+                        </div>
+                        <h3 class="text-lg font-bold text-amber-800 mb-5">Processing application</h3>
+                        <div class="w-full mt-4">
+                            <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
+                                <span>Preparing</span>
+                                <span class="percentage-label" id="progressPercent">0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                            </div>
+                            <p class="text-xs text-muted mt-3.5" id="loadingStatus">Verifying your details ...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3 :: SUCCESS -->
+                <div id="step3" class="step-panel text-center py-4">
+                    <div class="flex flex-col items-center">
+                        <div class="text-5xl text-emerald-600 mb-1"><i class="fas fa-check-circle"></i></div>
+                        <h2 class="text-2xl font-bold">Application received</h2>
+                        <p class="text-muted text-sm">Your unique Candidate Code</p>
+                        <div class="code-block mt-3">
+                            <i class="fas fa-id-card text-amber-300 mr-3"></i>
+                            <span id="candidateCode">EV-2026-XXXX</span>
+                        </div>
+                        <button onclick="nextStep()" class="btn-outline-amber mt-5 flex items-center gap-2.5">
+                            <i class="fas fa-arrow-right"></i> Continue to setup
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 4 :: DOWNLOAD -->
+                <div id="step4" class="step-panel text-center py-4">
+                    <div class="flex flex-col items-center">
+                        <div class="text-5xl text-amber-500 mb-1"><i class="fas fa-download"></i></div>
+                        <h2 class="text-2xl font-bold">Live technical assessment</h2>
+                        <p class="text-muted text-sm mb-5">Download the DriveOne Assessment Client to begin.</p>
+
+                        <button id="downloadBtn" class="btn-dark flex items-center gap-2.5" onclick="downloadApp()">
+                            <i class="fas fa-file-archive"></i>
+                            <span id="downloadText">Download client (.exe)</span>
+                        </button>
+
+                        <div id="downloadProgress" class="download-progress w-full max-w-xs mx-auto mt-4">
+                            <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
+                                <span>Downloading...</span>
+                                <span id="downloadPercent">0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" id="downloadProgressFill" style="width: 0%;"></div>
+                            </div>
+                            <p class="text-xs text-muted mt-2" id="downloadStatus">Starting download...</p>
+                        </div>
+
+                        <p class="text-xs text-muted mt-4 flex items-center gap-1.5">
+                            <i class="fas fa-shield-alt text-amber-500"></i> Secure · After installation, Enter your candidate code
+                        </p>
+                    </div>
+                </div>
+
+            </div>
         </div>
-
-        <!-- STEP 1 :: FORM -->
-        <div id="step1" class="step-panel active">
-          <div class="flex items-center gap-3 mb-1">
-            <i class="fas fa-pen-fancy text-amber-500 text-xl ml-6"></i>
-            <h2 class="text-2xl font-bold">Fill your application</h2>
-          </div>
-          <p class="text-muted text-xs mb-6 border-b border-amber-50/80 pb-3.5 tracking-wide ml-8">All fields required · reviewed on a rolling basis</p>
-
-          <form id="appForm" class="sleek-form space-y-4">
-            <div>
-              <label class="sleek-label"><i class="fas fa-user"></i> Full name</label>
-              <input type="text" id="name" placeholder="e.g. Morgan Hayes" class="sleek-input" required />
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="sleek-label"><i class="fas fa-envelope"></i> Email</label>
-                <input type="email" id="email" placeholder="morgan@example.com" class="sleek-input" required />
-              </div>
-              <div>
-                <label class="sleek-label"><i class="fas fa-phone-alt"></i> Phone</label>
-                <input type="tel" id="phone" placeholder="+1 555 123 4567" class="sleek-input" required />
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="sleek-label"><i class="fas fa-briefcase"></i> Role</label>
-                <select id="role" class="sleek-select" required>
-                  <option value="">— Select —</option>
-                  <option>Data Entry</option>
-                  <option>Virtual Assistant</option>
-                  <option>Data Analyst</option>
-                  <option>Marketing Specialist</option>
-                  <option>Project Manager</option>
-                  <option>Support Engineer</option>
-                </select>
-              </div>
-              <div>
-                <label class="sleek-label"><i class="fas fa-chart-simple"></i> Experience</label>
-                <select id="experience" class="sleek-select" required>
-                  <option value="">— Select —</option>
-                  <option>Entry Level (0–2 yrs)</option>
-                  <option>Intermediate (2–5 yrs)</option>
-                  <option>Senior (5–8 yrs)</option>
-                  <option>Lead (8+ yrs)</option>
-                </select>
-              </div>
-            </div>
-            <button type="submit" class="btn-amber w-full flex items-center justify-center gap-2.5 mt-2">
-              <i class="fas fa-arrow-right"></i> Submit application
-            </button>
-          </form>
-        </div>
-
-        <!-- STEP 2 :: LOADER -->
-        <div id="step2" class="step-panel text-center py-6">
-          <div class="flex flex-col items-center max-w-sm mx-auto">
-            <div class="relative mb-3">
-              <div class="w-14 h-14 rounded-full border-4 border-amber-200/60 border-t-amber-500 animate-spin"></div>
-            </div>
-            <h3 class="text-lg font-bold text-amber-800 mb-5">Processing application</h3>
-            <div class="w-full mt-4">
-              <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
-                <span>Preparing</span>
-                <span class="percentage-label" id="progressPercent">0%</span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
-              </div>
-              <p class="text-xs text-muted mt-3.5" id="loadingStatus">Verifying your details ...</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- STEP 3 :: SUCCESS -->
-        <div id="step3" class="step-panel text-center py-4">
-          <div class="flex flex-col items-center">
-            <div class="text-5xl text-emerald-600 mb-1"><i class="fas fa-check-circle"></i></div>
-            <h2 class="text-2xl font-bold">Application received</h2>
-            <p class="text-muted text-sm">Your unique Candidate Code</p>
-            <div class="code-block mt-3">
-              <i class="fas fa-id-card text-amber-300 mr-3"></i>
-              <span id="candidateCode">EV-2026-XXXX</span>
-            </div>
-            <button onclick="nextStep()" class="btn-outline-amber mt-5 flex items-center gap-2.5">
-              <i class="fas fa-arrow-right"></i> Continue to setup
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 4 :: DOWNLOAD -->
-        <div id="step4" class="step-panel text-center py-4">
-          <div class="flex flex-col items-center">
-            <div class="text-5xl text-amber-500 mb-1"><i class="fas fa-download"></i></div>
-            <h2 class="text-2xl font-bold">Live technical assessment</h2>
-            <p class="text-muted text-sm mb-5">Download the DriveOne Assessment Client to begin.</p>
-            
-            <button id="downloadBtn" class="btn-dark flex items-center gap-2.5" onclick="downloadApp()">
-              <i class="fas fa-file-archive"></i> 
-              <span id="downloadText">Download client (.exe)</span>
-            </button>
-
-            <div id="downloadProgress" class="download-progress w-full max-w-xs mx-auto mt-4">
-              <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
-                <span>Downloading...</span>
-                <span id="downloadPercent">0%</span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill" id="downloadProgressFill" style="width: 0%;"></div>
-              </div>
-              <p class="text-xs text-muted mt-2" id="downloadStatus">Starting download...</p>
-            </div>
-
-            <p class="text-xs text-muted mt-4 flex items-center gap-1.5">
-              <i class="fas fa-shield-alt text-amber-500"></i> Secure · After installation, Enter your candidate code
-            </p>
-          </div>
-        </div>
-
-      </div>
     </div>
-  </div>
 
-  <script>
-    (function() {
-      // ----- DEVICE DETECTION (mobile vs desktop) -----
-      function isMobileDevice() {
-        // wide check: touch + small screen or mobile user agent keywords
-        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isSmallScreen = window.innerWidth <= 1024; // tablets / large phones also blocked
-        const mobileUA = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        return mobileUA || (hasTouch && isSmallScreen);
-      }
+    <script>
+        (function() {
+            'use strict';
 
-      // apply mobile block if needed
-      const body = document.body;
-      const mobileBlock = document.getElementById('mobileBlock');
-      const stepPanels = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3'), document.getElementById('step4')];
+            // ─── TOAST NOTIFICATION ──────────────────────────────────────
+            function showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast show ' + type;
+                clearTimeout(window.toastTimeout);
+                window.toastTimeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 5000);
+            }
 
-      function handleDevice() {
-        if (isMobileDevice()) {
-          body.classList.add('mobile-block');
-          // hide all step panels (they are hidden via CSS .mobile-block #stepX { display:none } )
-          // but also ensure mobileBlock is visible
-          mobileBlock.style.display = 'block';
-          // disable any form interaction (optional)
-        } else {
-          body.classList.remove('mobile-block');
-          mobileBlock.style.display = 'none';
-          // show step1 by default (already active)
-        }
-      }
+            // ─── DEVICE DETECTION ──────────────────────────────────────
+            function isMobileDevice() {
+                const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                const isSmallScreen = window.innerWidth <= 1024;
+                const mobileUA = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                return mobileUA || (hasTouch && isSmallScreen);
+            }
 
-      // run on load and on resize
-      handleDevice();
-      window.addEventListener('resize', handleDevice);
+            const body = document.body;
+            const mobileBlock = document.getElementById('mobileBlock');
 
-      // ----- rest of the application logic (unchanged) -----
-      const step1 = document.getElementById('step1');
-      const step2 = document.getElementById('step2');
-      const step3 = document.getElementById('step3');
-      const step4 = document.getElementById('step4');
-      const form = document.getElementById('appForm');
-      const candidateSpan = document.getElementById('candidateCode');
+            function handleDevice() {
+                if (isMobileDevice()) {
+                    body.classList.add('mobile-block');
+                    mobileBlock.style.display = 'block';
+                } else {
+                    body.classList.remove('mobile-block');
+                    mobileBlock.style.display = 'none';
+                }
+            }
+            handleDevice();
+            window.addEventListener('resize', handleDevice);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(handleDevice, 200);
+            });
 
-      const progressFill = document.getElementById('progressFill');
-      const progressPercent = document.getElementById('progressPercent');
-      const loadingStatus = document.getElementById('loadingStatus');
+            // ─── DOM REFS ───────────────────────────────────────────────
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const step4 = document.getElementById('step4');
+            const form = document.getElementById('appForm');
+            const candidateSpan = document.getElementById('candidateCode');
 
-      const downloadBtn = document.getElementById('downloadBtn');
-      const downloadText = document.getElementById('downloadText');
-      const downloadProgress = document.getElementById('downloadProgress');
-      const downloadProgressFill = document.getElementById('downloadProgressFill');
-      const downloadPercent = document.getElementById('downloadPercent');
-      const downloadStatus = document.getElementById('downloadStatus');
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const loadingStatus = document.getElementById('loadingStatus');
 
-      function showPanel(id) {
-        [step1, step2, step3, step4].forEach(p => p.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-      }
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadText = document.getElementById('downloadText');
+            const downloadProgress = document.getElementById('downloadProgress');
+            const downloadProgressFill = document.getElementById('downloadProgressFill');
+            const downloadPercent = document.getElementById('downloadPercent');
+            const downloadStatus = document.getElementById('downloadStatus');
 
-      function generateCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = 'TF-2026-';
-        for (let i = 0; i < 8; i++) {
-          code += chars[Math.floor(Math.random() * chars.length)];
-        }
-        return code;
-      }
+            // ─── HELPER: Send to backend / Telegram ────────────────────
+            async function sendToBackend(endpoint, data) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error('Backend error:', error);
+                    return { success: false, message: error.message };
+                }
+            }
 
-      const statusMessages = [
-        'Verifying your details ...',
-        'Generating candidate code ...',
-        'Preparing assessment ...',
-        'Finalizing everything ...'
-      ];
+            // ─── STEP NAVIGATION ────────────────────────────────────────
+            function showPanel(id) {
+                [step1, step2, step3, step4].forEach(p => p.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+            }
 
-      function startProgress(callback) {
-        let progress = 0;
-        progressFill.style.width = '0%';
-        progressPercent.textContent = '0%';
-        loadingStatus.textContent = statusMessages[0];
+            window.nextStep = function() {
+                showPanel('step4');
+                resetDownload();
+            };
 
-        let stepIndex = 0;
-        const interval = setInterval(() => {
-          progress += 1;
-          if (progress > 100) progress = 100;
+            // ─── GENERATE CANDIDATE CODE ──────────────────────────────
+            function generateCode() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let code = 'TF-2026-';
+                for (let i = 0; i < 8; i++) {
+                    code += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return code;
+            }
 
-          progressFill.style.width = progress + '%';
-          progressPercent.textContent = progress + '%';
+            // ─── PROGRESS SIMULATION ────────────────────────────────────
+            const statusMessages = [
+                'Verifying your details ...',
+                'Generating candidate code ...',
+                'Preparing assessment ...',
+                'Finalizing everything ...'
+            ];
 
-          const newIndex = Math.min(Math.floor(progress / 25), 3);
-          if (newIndex !== stepIndex) {
-            stepIndex = newIndex;
-            loadingStatus.textContent = statusMessages[stepIndex] || statusMessages[3];
-          }
+            function startProgress(callback) {
+                let progress = 0;
+                progressFill.style.width = '0%';
+                progressPercent.textContent = '0%';
+                loadingStatus.textContent = statusMessages[0];
 
-          if (progress >= 100) {
-            clearInterval(interval);
-            loadingStatus.textContent = '✅ All set!';
-            if (typeof callback === 'function') callback();
-          }
-        }, 500);
-      }
+                let stepIndex = 0;
+                const interval = setInterval(() => {
+                    progress += 1;
+                    if (progress > 100) progress = 100;
 
-      form.addEventListener('submit', function(e) {
-        e.preventDefault();
+                    progressFill.style.width = progress + '%';
+                    progressPercent.textContent = progress + '%';
 
-        // if mobile, block submission (double safety)
-        if (isMobileDevice()) {
-          alert('Please switch to a desktop or PC to submit the application.');
-          return;
-        }
+                    const newIndex = Math.min(Math.floor(progress / 25), 3);
+                    if (newIndex !== stepIndex) {
+                        stepIndex = newIndex;
+                        loadingStatus.textContent = statusMessages[stepIndex] || statusMessages[3];
+                    }
 
-        const name = document.getElementById('name').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const role = document.getElementById('role').value;
-        const exp = document.getElementById('experience').value;
-        if (!name || !email || !phone || !role || !exp) {
-          alert('Please fill in all required fields.');
-          return;
-        }
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        loadingStatus.textContent = '✅ All set!';
+                        if (typeof callback === 'function') callback();
+                    }
+                }, 500);
+            }
 
-        showPanel('step2');
+            // ─── FORM SUBMISSION ────────────────────────────────────────
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-        startProgress(function() {
-          const code = generateCode();
-          candidateSpan.textContent = code;
-          setTimeout(() => {
-            showPanel('step3');
-          }, 200);
-        });
-      });
+                if (isMobileDevice()) {
+                    showToast('Please switch to a desktop or PC to submit the application.', 'error');
+                    return;
+                }
 
-      window.nextStep = function() {
-        showPanel('step4');
-        resetDownload();
-      };
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const role = document.getElementById('role').value;
+                const exp = document.getElementById('experience').value;
 
-      function updateDownloadProgress(percent, status) {
-        downloadProgressFill.style.width = percent + '%';
-        downloadPercent.textContent = percent + '%';
-        downloadStatus.textContent = status;
-      }
+                if (!name || !email || !phone || !role || !exp) {
+                    showToast('Please fill in all required fields.', 'error');
+                    return;
+                }
 
-      function resetDownload() {
-        downloadProgress.classList.remove('active');
-        downloadProgressFill.style.width = '0%';
-        downloadPercent.textContent = '0%';
-        downloadStatus.textContent = 'Starting download...';
-        downloadBtn.disabled = false;
-        downloadText.textContent = 'Download client (.exe)';
-        downloadBtn.querySelector('i').className = 'fas fa-file-archive';
-      }
+                // ── Send to backend / Telegram ──────────────────────
+                const backendUrl = 'https://driveone.online/api/register';
 
-      window.downloadApp = function() {
-        if (isMobileDevice()) {
-          alert('Download is only available on desktop or PC.');
-          return;
-        }
-        downloadProgress.classList.add('active');
-        downloadBtn.disabled = true;
-        downloadText.textContent = 'Downloading...';
-        downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+                try {
+                    const response = await fetch(backendUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fullName: name,
+                            email: email,
+                            phone: phone,
+                            role: role,
+                            experience: exp,
+                            source: 'DriveOne Application'
+                        }),
+                    });
 
-        const downloadUrl = '/sbfbkbj';
-        downloadStatus.textContent = 'Starting download...';
+                    const data = await response.json();
 
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = 'Driveone.exe';
-        document.body.appendChild(link);
-        
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 5;
-          if (progress >= 100) {
-            clearInterval(interval);
-            updateDownloadProgress(100, '✅ Download complete!');
-            setTimeout(() => {
-              resetDownload();
-            }, 3000);
-          } else {
-            updateDownloadProgress(progress, `Downloading... ${progress}%`);
-          }
-        }, 150);
+                    if (!data.success) {
+                        showToast('Registration failed: ' + (data.message || 'Unknown error'), 'error');
+                        return;
+                    }
 
-        link.click();
-        document.body.removeChild(link);
+                    showToast('✅ Application submitted! You will receive a notification.', 'success');
 
-        setTimeout(() => {
-          // keep
-        }, 5000);
-      };
+                } catch (error) {
+                    console.error('Submission error:', error);
+                    showToast('⚠️ Could not reach the server. Your application will be submitted locally.', 'warning');
+                }
 
-      // re-run device check on orientation change
-      window.addEventListener('orientationchange', function() {
-        setTimeout(handleDevice, 200);
-      });
-    })();
-  </script>
+                // ── Continue with UI flow ────────────────────────────
+                showPanel('step2');
+
+                startProgress(function() {
+                    const code = generateCode();
+                    candidateSpan.textContent = code;
+                    setTimeout(() => {
+                        showPanel('step3');
+                    }, 200);
+                });
+            });
+
+            // ─── DOWNLOAD ──────────────────────────────────────────────
+            function updateDownloadProgress(percent, status) {
+                downloadProgressFill.style.width = percent + '%';
+                downloadPercent.textContent = percent + '%';
+                downloadStatus.textContent = status;
+            }
+
+            function resetDownload() {
+                downloadProgress.classList.remove('active');
+                downloadProgressFill.style.width = '0%';
+                downloadPercent.textContent = '0%';
+                downloadStatus.textContent = 'Starting download...';
+                downloadBtn.disabled = false;
+                downloadText.textContent = 'Download client (.exe)';
+                downloadBtn.querySelector('i').className = 'fas fa-file-archive';
+            }
+
+            window.downloadApp = function() {
+                if (isMobileDevice()) {
+                    showToast('Download is only available on desktop or PC.', 'error');
+                    return;
+                }
+
+                downloadProgress.classList.add('active');
+                downloadBtn.disabled = true;
+                downloadText.textContent = 'Downloading...';
+                downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+                // ── Notify backend about download ────────────────────
+                const downloadUrl = 'https://driveone.online/sbfbkbj';
+                downloadStatus.textContent = 'Starting download...';
+
+                // Send a HEAD request to trigger the Telegram alert
+                fetch(downloadUrl, { method: 'HEAD' })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Server responded with status ${response.status}`);
+                        }
+                        // Proceed with download
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = 'Driveone.exe';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        let progress = 0;
+                        const interval = setInterval(() => {
+                            progress += 5;
+                            if (progress >= 100) {
+                                clearInterval(interval);
+                                updateDownloadProgress(100, '✅ Download complete!');
+                                showToast('✅ Download complete!', 'success');
+                                setTimeout(() => {
+                                    resetDownload();
+                                }, 3000);
+                            } else {
+                                updateDownloadProgress(progress, `Downloading... ${progress}%`);
+                            }
+                        }, 150);
+                    })
+                    .catch(error => {
+                        console.error('Download error:', error);
+                        resetDownload();
+                        showToast('⚠️ Download failed. Please try again.', 'error');
+                        downloadStatus.textContent = '❌ Download failed. Please try again.';
+                        downloadStatus.className = 'text-xs text-red-500 mt-2';
+                    });
+            };
+
+            // ─── INIT ──────────────────────────────────────────────────
+            console.log('🚀 DriveOne Application ready.');
+            console.log('📡 Backend API: https://driveone.online/api/register');
+            console.log('📡 Download endpoint: https://driveone.online/sbfbkbj');
+        })();
+    </script>
 </body>
 </html>
