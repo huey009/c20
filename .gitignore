@@ -12,3 +12,4 @@ _token_*.json
 package-lock.json 
 yarn.lock 
 backend/.env
+"c2_framework.db"  
