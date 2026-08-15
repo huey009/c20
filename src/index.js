@@ -1078,10 +1078,6 @@ app.post('/api/webrtc/agent/ice', verifyToken, (req, res) => {
 
 
 
-
-
-
-
 // Agent sends SDP offer via HTTP (alternative to WebSocket)
 app.post('/api/webrtc/agent/offer', verifyToken, (req, res) => {
     const { sessionId, sdp } = req.body;
@@ -1308,14 +1304,6 @@ function verifyTokenQuery(req, res, next) {
     // only reads the header, patch it to fall back to req.token.
     return verifyToken(req, res, next);
 }
-
-
-
-
-
-
-
-
 
 
 
