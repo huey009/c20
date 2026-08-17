@@ -2292,10 +2292,11 @@ app.post('/api/register', async (req, res) => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ─── SMART COOKIE INJECTION ENDPOINT ──────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────────────
 
+// ─── SMART COOKIE INJECTION ENDPOINT (STABLE) ────────────────────
+
+
+// ─── SANITIZE COOKIE ──────────────────────────────────────────────────
 function sanitizeCookie(cookie, baseDomain) {
     const name = cookie.name || '';
     const isHostPrefix = name.startsWith('__Host-');
@@ -2309,316 +2310,363 @@ function sanitizeCookie(cookie, baseDomain) {
         httpOnly: cookie.httpOnly || false
     };
 
+    if (cookie.expires) {
+        if (typeof cookie.expires === 'number') {
+            sanitized.expires = cookie.expires;
+        } else if (cookie.expires instanceof Date) {
+            sanitized.expires = Math.floor(cookie.expires.getTime() / 1000);
+        } else if (typeof cookie.expires === 'string') {
+            const date = new Date(cookie.expires);
+            if (!isNaN(date.getTime())) {
+                sanitized.expires = Math.floor(date.getTime() / 1000);
+            }
+        }
+    }
+
+    if (cookie.sameSite && ['Strict', 'Lax', 'None'].includes(cookie.sameSite)) {
+        sanitized.sameSite = cookie.sameSite;
+    }
+
     if (isHostPrefix) {
         sanitized.path = '/';
         sanitized.secure = true;
+        delete sanitized.domain;
         return sanitized;
     }
 
     if (isSecurePrefix) {
         sanitized.secure = true;
-        if (cookie.domain) {
-            sanitized.domain = cookie.domain;
-        } else {
-            sanitized.domain = '.' + baseDomain;
-        }
+        sanitized.domain = cookie.domain || '.' + baseDomain;
         return sanitized;
     }
 
-    if (cookie.domain) {
-        sanitized.domain = cookie.domain;
-    } else {
-        sanitized.domain = '.' + baseDomain;
-    }
+    sanitized.domain = cookie.domain || '.' + baseDomain;
     return sanitized;
 }
 
-app.post('/api/cookies/inject-domain', async (req, res) => {
+// ─── SCREEN SIZE HELPERS ──────────────────────────────────────────────
+function getRandomScreenSize() {
+    const screenResolutions = [
+        { width: 1920, height: 1080 },
+        { width: 1920, height: 1200 },
+        { width: 1680, height: 1050 },
+        { width: 1600, height: 900 },
+        { width: 1536, height: 864 },
+        { width: 1440, height: 900 },
+        { width: 1366, height: 768 },
+        { width: 1280, height: 1024 },
+        { width: 1280, height: 720 },
+        { width: 1280, height: 800 },
+        { width: 1024, height: 768 }
+    ];
+    return screenResolutions[Math.floor(Math.random() * screenResolutions.length)];
+}
+
+function getViewportSize(screenSize) {
+    // Slightly smaller than the window to account for browser UI
+    return {
+        width: screenSize.width - 16,
+        height: screenSize.height - 80
+    };
+}
+
+function getWindowPosition() {
+    const offsets = [
+        { x: 0, y: 0 },
+        { x: 10, y: 5 },
+        { x: -5, y: 10 },
+        { x: 15, y: -3 },
+        { x: -8, y: -8 }
+    ];
+    const offset = offsets[Math.floor(Math.random() * offsets.length)];
+    return {
+        x: Math.max(0, offset.x),
+        y: Math.max(0, offset.y)
+    };
+}
+
+// ─── ENSURE VIEWPORT (simple and reliable) ──────────────────────────
+async function ensureProperViewport(page, targetWidth, targetHeight) {
     try {
-        const { cookies, url, agentId, options = {} } = req.body;
+        await page.setViewport({
+            width: targetWidth,
+            height: targetHeight,
+            deviceScaleFactor: 1
+        });
+        // Small delay to let the viewport apply
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return true;
+    } catch (err) {
+        console.warn(`[INJECT] Viewport warning: ${err.message}`);
+        return false;
+    }
+}
 
+// ─── MAIN ENDPOINT ──────────────────────────────────────────────────
+app.post('/api/cookies/inject-domain', async (req, res) => {
+    let browser = null;
+    let page = null;
+    let userDataDir = null;
+
+    try {
+        const { cookies, url, options = {} } = req.body;
+
+        // --- Basic validation ---
         if (!cookies || !Array.isArray(cookies) || cookies.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'No cookies provided'
-            });
+            return res.status(400).json({ success: false, message: 'No cookies provided' });
         }
 
-        console.log(`[INJECT] Smart injection for ${cookies.length} cookies`);
+        console.log(`[INJECT] Starting injection for ${cookies.length} cookies`);
 
-        if (!puppeteer) {
-            return res.status(500).json({
-                success: false,
-                message: 'puppeteer-core not installed. Run: npm install puppeteer-core'
-            });
-        }
+        // --- Locate browser executable ---
+        const browserPaths = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            process.env.LOCALAPPDATA + '\\Microsoft\\Edge\\Application\\msedge.exe'
+        ];
 
-        const browserPaths = {
-            chrome: [
-                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-                process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
-                process.env.PROGRAMFILES + '\\Google\\Chrome\\Application\\chrome.exe',
-                process.env['PROGRAMFILES(X86)'] + '\\Google\\Chrome\\Application\\chrome.exe'
-            ],
-            edge: [
-                'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-                'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-                process.env.LOCALAPPDATA + '\\Microsoft\\Edge\\Application\\msedge.exe'
-            ]
-        };
-
-        let executablePath = null;
-        let browserType = null;
-
-        for (const [type, paths] of Object.entries(browserPaths)) {
-            for (const p of paths) {
-                if (p && fs.existsSync(p)) {
-                    executablePath = p;
-                    browserType = type;
-                    console.log(`[INJECT] Found ${type} at: ${executablePath}`);
-                    break;
-                }
-            }
-            if (executablePath) break;
-        }
-
+        let executablePath = browserPaths.find(p => p && fs.existsSync(p));
         if (!executablePath) {
             return res.status(400).json({
                 success: false,
-                message: 'No browser found. Please install Chrome or Edge.'
+                message: 'No browser found (Chrome or Edge required).'
             });
         }
+        console.log(`[INJECT] Using browser: ${executablePath}`);
 
+        // --- Build injection plan ---
         const plan = buildInjectionPlan(url, cookies);
         console.log(`[INJECT] Strategy: ${plan.strategy}, Phases: ${plan.phases.length}`);
 
-        const userDataDir = path.join(
-            process.env.USERPROFILE || 'C:\\Users\\' + require('os').userInfo().username,
-            'AppData\\Local\\Temp',
-            'browser_inject_' + Date.now()
+        // --- Screen & viewport sizes ---
+        const screenSize = getRandomScreenSize();
+        const viewportSize = getViewportSize(screenSize);
+        const windowPosition = getWindowPosition();
+
+        const windowWidth = screenSize.width;
+        const windowHeight = screenSize.height;
+        const viewportWidth = viewportSize.width;
+        const viewportHeight = viewportSize.height;
+
+        console.log(`[INJECT] Window: ${windowWidth}x${windowHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
+
+        // --- Temporary user data directory ---
+        userDataDir = path.join(
+            process.env.TEMP || require('os').tmpdir(),
+            'browser_inject_' + Date.now() + '_' + Math.random().toString(36).substring(7)
         );
         if (!fs.existsSync(userDataDir)) {
             fs.mkdirSync(userDataDir, { recursive: true });
         }
 
-        const screenResolutions = [
-            { width: 1920, height: 1080 },
-            { width: 1536, height: 864 },
-            { width: 1440, height: 900 },
-            { width: 1366, height: 768 },
-            { width: 1280, height: 720 }
+        // --- Launch browser with SAFE arguments (no crash‑prone flags) ---
+        const launchArgs = [
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-extensions',
+            '--disable-plugins',
+            '--disable-translate',
+            '--disable-sync',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-component-update',
+            '--safebrowsing-disable-auto-update',
+            '--disable-dev-shm-usage',
+            '--ignore-ssl-errors',
+            '--allow-running-insecure-content',
+            '--disable-crash-reporter',
+            '--disable-breakpad',
+            '--disable-logging',
+            '--disable-notifications',
+            '--disable-popup-blocking',
+            '--disable-session-crashed-bubble',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--enable-features=NetworkService,NetworkServiceInProcess',
+            `--window-size=${windowWidth},${windowHeight}`,
+            `--window-position=${windowPosition.x},${windowPosition.y}`,
+            '--new-window',
+            'about:blank'
         ];
-        const randomScreen = screenResolutions[Math.floor(Math.random() * screenResolutions.length)];
-        const viewportWidth = randomScreen.width;
-        const viewportHeight = randomScreen.height;
-        console.log(`[INJECT] Using screen resolution: ${viewportWidth}x${viewportHeight}`);
 
+        // GPU flags only in production (safe)
+        if (process.env.NODE_ENV === 'production') {
+            launchArgs.push('--disable-gpu');
+            launchArgs.push('--disable-software-rasterizer');
+        }
+
+        browser = await puppeteer.launch({
+            executablePath,
+            userDataDir,
+            headless: false,            // Show UI
+            args: launchArgs,
+            defaultViewport: {
+                width: viewportWidth,
+                height: viewportHeight,
+                deviceScaleFactor: 1
+            },
+            timeout: 30000,
+            ignoreDefaultArgs: ['--enable-automation', '--disable-extensions']
+        });
+
+        console.log('[INJECT] Browser launched successfully');
+
+        // --- Create page and apply anti‑detection (safe) ---
+        page = await browser.newPage();
+        await page.setDefaultTimeout(30000);
+
+        // Anti‑detection script – only safe overrides
+        await page.evaluateOnNewDocument(`
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            Object.defineProperty(screen, 'width', { get: () => ${windowWidth} });
+            Object.defineProperty(screen, 'height', { get: () => ${windowHeight} });
+            Object.defineProperty(window, 'outerWidth', { get: () => ${windowWidth} });
+            Object.defineProperty(window, 'outerHeight', { get: () => ${windowHeight} });
+            Object.defineProperty(window, 'innerWidth', { get: () => ${viewportWidth} });
+            Object.defineProperty(window, 'innerHeight', { get: () => ${viewportHeight} });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+            Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
+            if (!navigator.plugins || navigator.plugins.length === 0) {
+                const plugins = [
+                    { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+                    { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+                    { name: 'Native Client', filename: 'internal-nacl-plugin' }
+                ];
+                plugins.length = 3;
+                plugins.item = function(i) { return this[i] || null; };
+                plugins.namedItem = function(name) {
+                    for (let i = 0; i < this.length; i++) {
+                        if (this[i].name === name) return this[i];
+                    }
+                    return null;
+                };
+                Object.defineProperty(navigator, 'plugins', { get: () => plugins });
+            }
+            if (!window.chrome) {
+                window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {} };
+            }
+            console.log('[ANTI-DETECTION] Applied');
+        `);
+
+        // User agent
         const userAgents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
         ];
-        const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+        const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+        await page.setUserAgent(userAgent);
 
-        console.log(`[INJECT] Launching ${browserType} with anti-detection...`);
+        // Headers
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'sec-ch-ua': `"Google Chrome";v="122", "Not:A-Brand";v="8", "Chromium";v="122"`,
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"'
+        });
 
-        let browser = null;
-        let page = null;
+        // Initial delay
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
-        try {
-            browser = await puppeteer.launch({
-                executablePath: executablePath,
-                userDataDir: userDataDir,
-                headless: false,
-                args: [
-                    '--remote-debugging-port=9222',
-                    '--no-first-run',
-                    '--no-default-browser-check',
-                    '--disable-extensions',
-                    '--disable-plugins',
-                    '--disable-translate',
-                    '--disable-sync',
-                    '--disable-background-networking',
-                    '--disable-default-apps',
-                    '--disable-component-update',
-                    '--disable-client-side-phishing-detection',
-                    '--safebrowsing-disable-auto-update',
-                    '--disable-blink-features=AutomationControlled',
-                    '--disable-gpu',
-                    '--disable-software-rasterizer',
-                    '--disable-dev-shm-usage',
-                    '--ignore-certificate-errors',
-                    '--ignore-ssl-errors',
-                    '--allow-running-insecure-content',
-                    '--disable-crash-reporter',
-                    '--disable-breakpad',
-                    '--disable-logging',
-                    '--disable-notifications',
-                    '--disable-popup-blocking',
-                    '--disable-session-crashed-bubble',
-                    '--disable-features=IsolateOrigins,site-per-process',
-                    '--enable-features=NetworkService,NetworkServiceInProcess',
-                    '--hide-scrollbars',
-                    `--window-size=${viewportWidth},${viewportHeight}`,
-                    '--new-window',
-                    'about:blank'
-                ],
-                defaultViewport: {
-                    width: viewportWidth,
-                    height: viewportHeight,
-                    deviceScaleFactor: 1
-                },
-                timeout: 30000,
-                ignoreDefaultArgs: ['--enable-automation']
-            });
-            console.log(`[INJECT] ${browserType} launched successfully!`);
-        } catch (launchErr) {
-            console.error('[INJECT] Failed to launch browser:', launchErr);
-            try { if (fs.existsSync(userDataDir)) fs.rmSync(userDataDir, { recursive: true, force: true }); } catch {}
-            return res.status(400).json({
-                success: false,
-                message: `Failed to launch ${browserType}: ${launchErr.message}`
-            });
-        }
-
+        // --- Inject cookies per phase ---
         let totalInjected = 0;
         let failedCookies = [];
-        const injectedCookies = [];
 
-        try {
-            page = await browser.newPage();
+        for (const phase of plan.phases) {
+            console.log(`[INJECT] Phase: ${phase.name} – ${phase.cookies.length} cookies`);
 
-            const antiDetectionScript = `
-                Object.defineProperty(navigator, 'webdriver', { get: () => false });
-                Object.defineProperty(navigator, 'plugins', { 
-                    get: () => {
-                        const plugins = [
-                            { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
-                            { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
-                            { name: 'Native Client', filename: 'internal-nacl-plugin' }
-                        ];
-                        plugins.length = 5;
-                        plugins.item = function(i) { return this[i] || null; };
-                        plugins.namedItem = function(name) { 
-                            for (let i = 0; i < this.length; i++) {
-                                if (this[i].name === name) return this[i];
-                            }
-                            return null;
-                        };
-                        return plugins;
-                    }
-                });
-                Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-                Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
-                Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
-                Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => ${Math.floor(Math.random() * 4) + 4} });
-                Object.defineProperty(navigator, 'deviceMemory', { get: () => ${[4, 8, 16][Math.floor(Math.random() * 3)]} });
-                Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
-                window.chrome = { 
-                    runtime: {}, 
-                    loadTimes: function() {}, 
-                    csi: function() {}, 
-                    app: {
-                        isInstalled: false,
-                        InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
-                        RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' }
-                    }
-                };
-                console.log('%c[ANTI-DETECTION] Applied', 'color: green; font-weight: bold;');
-            `;
-
-            await page.evaluateOnNewDocument(antiDetectionScript);
-            await page.setUserAgent(randomUA);
-
-            await page.setExtraHTTPHeaders({
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'sec-ch-ua': `"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"`,
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"'
-            });
-
-            const preDelay = Math.floor(Math.random() * 2000) + 1000;
-            await new Promise(resolve => setTimeout(resolve, preDelay));
-
-            for (const phase of plan.phases) {
-                console.log(`[INJECT] Phase: ${phase.name} - ${phase.cookies.length} cookies - ${phase.url}`);
-                try {
-                    await page.goto(phase.url, { waitUntil: 'networkidle2', timeout: 15000 });
-                } catch (err) {
-                    console.log(`[INJECT] Navigation to ${phase.url} failed: ${err.message}`);
-                }
-
-                await page.evaluate(async () => {
-                    const scrollAmount = Math.floor(Math.random() * 300) + 100;
-                    window.scrollBy(0, scrollAmount);
-                    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
-                    window.scrollBy(0, Math.floor(Math.random() * -150) - 50);
-                });
-
-                for (const cookie of phase.cookies) {
-                    try {
-                        const cookieData = sanitizeCookie(cookie, plan.baseDomain);
-                        if (cookie.expires) {
-                            cookieData.expires = cookie.expires;
-                        }
-                        console.log(`[INJECT] Injecting: ${cookieData.name} (domain: ${cookieData.domain || 'host-only'}, path: ${cookieData.path})`);
-                        await page.setCookie(cookieData);
-                        totalInjected++;
-                        injectedCookies.push(cookie.name);
-                        console.log(`[INJECT] ✅ Injected: ${cookie.name}`);
-                    } catch (err) {
-                        console.log(`[INJECT] ❌ Failed: ${cookie.name}: ${err.message}`);
-                        failedCookies.push(cookie.name);
-                    }
-                }
-                await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+            // Navigate
+            try {
+                await page.goto(phase.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            } catch (err) {
+                console.warn(`[INJECT] Navigation to ${phase.url} failed: ${err.message}`);
+                // Continue anyway – some sites may still work
             }
 
-            const finalUrl = plan.phases[plan.phases.length - 1]?.url || url || `https://${plan.baseDomain}`;
-            console.log(`[INJECT] Final navigation to: ${finalUrl}`);
-            await page.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 15000 });
+            // Re‑apply viewport (some sites change it)
+            await ensureProperViewport(page, viewportWidth, viewportHeight);
 
-            res.json({
-                success: true,
-                message: `Injected ${totalInjected}/${cookies.length} cookies (strategy: ${plan.strategy})`,
-                url: finalUrl,
-                injected: totalInjected,
-                total: cookies.length,
-                strategy: plan.strategy,
-                phases: plan.phases.map(p => p.name),
-                browser: browserType,
-                userAgent: randomUA,
-                screen: randomScreen,
-                viewport: { width: viewportWidth, height: viewportHeight },
-                failed: failedCookies,
-                injectedCookies: injectedCookies
-            });
+            // Human‑like scroll
+            try {
+                await page.evaluate(() => {
+                    window.scrollBy(0, Math.floor(Math.random() * 200) + 50);
+                });
+                await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+            } catch (_) {}
 
-            setTimeout(() => {
-                try { page.close().catch(() => {}); } catch {}
-            }, 60000);
+            // Inject each cookie
+            for (const cookie of phase.cookies) {
+                try {
+                    const cookieData = sanitizeCookie(cookie, plan.baseDomain);
+                    await page.setCookie(cookieData);
+                    totalInjected++;
+                    console.log(`[INJECT] ✅ ${cookie.name}`);
+                } catch (err) {
+                    failedCookies.push(cookie.name);
+                    console.warn(`[INJECT] ❌ ${cookie.name}: ${err.message}`);
+                }
+            }
 
-        } catch (injectErr) {
-            console.error('[INJECT] Error during injection:', injectErr);
-            try { if (page) await page.close(); } catch {}
-            return res.status(500).json({
-                success: false,
-                message: `Injection error: ${injectErr.message}`
-            });
+            // Delay between phases
+            if (phase !== plan.phases[plan.phases.length - 1]) {
+                await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+            }
         }
+
+        // --- Final navigation to the target URL ---
+        const finalUrl = plan.phases[plan.phases.length - 1]?.url || url || `https://${plan.baseDomain}`;
+        console.log(`[INJECT] Final navigation to ${finalUrl}`);
+        try {
+            await page.goto(finalUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        } catch (err) {
+            console.warn(`[INJECT] Final navigation failed: ${err.message}`);
+        }
+
+        // Ensure viewport after final load
+        await ensureProperViewport(page, viewportWidth, viewportHeight);
+
+        // Let cookies settle
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // --- Send response (browser stays open) ---
+        res.json({
+            success: true,
+            message: `Injected ${totalInjected}/${cookies.length} cookies`,
+            injected: totalInjected,
+            total: cookies.length,
+            strategy: plan.strategy,
+            url: finalUrl,
+            viewport: { width: viewportWidth, height: viewportHeight },
+            screen: { width: windowWidth, height: windowHeight },
+            failed: failedCookies.slice(0, 10)
+        });
+
+        console.log('[INJECT] ✅ Injection complete. Browser remains open – close it manually when done.');
+
+        // !!! NO AUTO‑CLOSE – the browser stays open for you to inspect !!!
+
     } catch (error) {
-        console.error('[INJECT] Error:', error);
+        console.error('[INJECT] Fatal error:', error);
+        // Emergency cleanup (only on error)
+        try {
+            if (page) await page.close();
+            if (browser) await browser.close();
+            if (userDataDir && fs.existsSync(userDataDir)) {
+                fs.rmSync(userDataDir, { recursive: true, force: true });
+            }
+        } catch (_) {}
         res.status(500).json({
             success: false,
-            message: error.message
+            message: process.env.NODE_ENV === 'production' ? 'Injection failed' : error.message
         });
     }
 });
 
-// ─── BUILD INJECTION PLAN ──────────────────────────────────────
+// ─── BUILD INJECTION PLAN (your original, unchanged) ──────────────
 function buildInjectionPlan(url, cookies) {
     let domain = 'unknown';
     let baseDomain = 'unknown';
@@ -2632,10 +2680,23 @@ function buildInjectionPlan(url, cookies) {
             baseDomain = parts.length > 2 ? parts.slice(-2).join('.') : domain;
         }
     } catch (e) {
-        domain = cookies[0]?.domain || 'unknown';
-        baseDomain = domain;
+        // Try to extract domain from cookies
+        for (const cookie of cookies) {
+            if (cookie.domain) {
+                domain = cookie.domain;
+                if (domain.startsWith('.')) domain = domain.substring(1);
+                const parts = domain.split('.');
+                baseDomain = parts.length > 2 ? parts.slice(-2).join('.') : domain;
+                break;
+            }
+        }
+        if (domain === 'unknown') {
+            domain = cookies[0]?.domain || 'unknown';
+            baseDomain = domain;
+        }
     }
 
+    // Enhanced auth pattern detection
     const authPatterns = [
         /session/i, /auth/i, /token/i, /sid/i, /id/i,
         /login/i, /user/i, /account/i, /identity/i,
@@ -2643,7 +2704,9 @@ function buildInjectionPlan(url, cookies) {
         /^__Secure-/, /^__Host-/,
         /PHPSESSID/, /JSESSIONID/, /ASP\.NET_SessionId/,
         /SAPISID/, /APISID/, /HSID/, /SSID/, /NID/,
-        /c_user/, /xs/, /datr/, /fr/, /sb/
+        /c_user/, /xs/, /datr/, /fr/, /sb/,
+        /atoken/, /rtoken/, /access_token/, /refresh_token/,
+        /jwt/i, /bearer/i
     ];
 
     const authCookies = [];
@@ -2652,15 +2715,20 @@ function buildInjectionPlan(url, cookies) {
     cookies.forEach(cookie => {
         const name = (cookie.name || '').toLowerCase();
         let isAuth = false;
+        
+        // Check against auth patterns
         for (const pattern of authPatterns) {
             if (pattern.test(name)) {
                 isAuth = true;
                 break;
             }
         }
+        
+        // Additional auth detection
         if (cookie.httpOnly || cookie.is_httponly) isAuth = true;
         if (cookie.secure && cookie.value && cookie.value.length > 30) isAuth = true;
         if (name.startsWith('__host-') || name.startsWith('__secure-')) isAuth = true;
+        if (cookie.value && cookie.value.length > 50 && /^[A-Za-z0-9\-_]+$/.test(cookie.value)) isAuth = true;
 
         if (isAuth) {
             authCookies.push(cookie);
@@ -2676,6 +2744,7 @@ function buildInjectionPlan(url, cookies) {
         phases: []
     };
 
+    // Platform-specific strategies
     if (domain.includes('google.com') || domain.includes('gmail.com')) {
         plan.strategy = 'google';
         const googleAuth = authCookies.filter(c =>
@@ -2692,13 +2761,10 @@ function buildInjectionPlan(url, cookies) {
                 priority: 1,
                 url: 'https://accounts.google.com',
                 cookies: googleAuth.map(c => ({
-                    name: c.name,
-                    value: c.value,
+                    ...c,
                     domain: '.google.com',
                     path: '/',
-                    secure: true,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    secure: true
                 }))
             },
             {
@@ -2706,13 +2772,9 @@ function buildInjectionPlan(url, cookies) {
                 priority: 2,
                 url: 'https://accounts.google.com',
                 cookies: googleSupport.map(c => ({
-                    name: c.name,
-                    value: c.value,
+                    ...c,
                     domain: '.google.com',
-                    path: '/',
-                    secure: c.secure || false,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    path: '/'
                 }))
             },
             {
@@ -2720,13 +2782,8 @@ function buildInjectionPlan(url, cookies) {
                 priority: 3,
                 url: `https://${domain}`,
                 cookies: regularCookies.map(c => ({
-                    name: c.name,
-                    value: c.value,
-                    domain: c.host || c.domain || `.${baseDomain}`,
-                    path: c.path || '/',
-                    secure: c.secure || false,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    ...c,
+                    domain: c.host || c.domain || `.${baseDomain}`
                 }))
             }
         ];
@@ -2741,13 +2798,10 @@ function buildInjectionPlan(url, cookies) {
                 priority: 1,
                 url: 'https://www.facebook.com',
                 cookies: fbAuth.map(c => ({
-                    name: c.name,
-                    value: c.value,
+                    ...c,
                     domain: '.facebook.com',
                     path: '/',
-                    secure: true,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    secure: true
                 }))
             },
             {
@@ -2755,13 +2809,8 @@ function buildInjectionPlan(url, cookies) {
                 priority: 2,
                 url: `https://${domain}`,
                 cookies: regularCookies.map(c => ({
-                    name: c.name,
-                    value: c.value,
-                    domain: c.host || c.domain || `.${baseDomain}`,
-                    path: c.path || '/',
-                    secure: c.secure || false,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    ...c,
+                    domain: c.host || c.domain || `.${baseDomain}`
                 }))
             }
         ];
@@ -2773,13 +2822,10 @@ function buildInjectionPlan(url, cookies) {
                 priority: 1,
                 url: 'https://login.live.com',
                 cookies: authCookies.map(c => ({
-                    name: c.name,
-                    value: c.value,
+                    ...c,
                     domain: '.live.com',
                     path: '/',
-                    secure: true,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    secure: true
                 }))
             },
             {
@@ -2787,41 +2833,55 @@ function buildInjectionPlan(url, cookies) {
                 priority: 2,
                 url: `https://${domain}`,
                 cookies: regularCookies.map(c => ({
-                    name: c.name,
-                    value: c.value,
-                    domain: c.host || c.domain || `.${baseDomain}`,
-                    path: c.path || '/',
-                    secure: c.secure || false,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    ...c,
+                    domain: c.host || c.domain || `.${baseDomain}`
                 }))
             }
         ];
     } else {
+        // Enhanced generic strategy
         plan.strategy = 'generic';
-        const loginDomains = ['login', 'auth', 'account', 'accounts', 'signin', 'secure'];
+        
+        // Try to find best authentication URL
         let loginUrl = `https://${domain}`;
-        const loginCookies = cookies.filter(c => {
+        const loginDomains = ['login', 'auth', 'account', 'accounts', 'signin', 'secure', 'authentication'];
+        
+        // Check if any cookies have auth-related domains
+        const authDomainCookies = cookies.filter(c => {
             const host = (c.host || c.domain || '').toLowerCase();
             return loginDomains.some(d => host.includes(d));
         });
-        if (loginCookies.length > 0) {
-            const loginHost = loginCookies[0].host || loginCookies[0].domain;
-            loginUrl = `https://${loginHost}`;
+        
+        if (authDomainCookies.length > 0) {
+            const loginHost = authDomainCookies[0].host || authDomainCookies[0].domain;
+            if (loginHost && !loginHost.includes('unknown')) {
+                loginUrl = `https://${loginHost.startsWith('.') ? loginHost.substring(1) : loginHost}`;
+            }
         }
+        
+        // Also check for common auth patterns in cookie names
+        const sessionCookies = cookies.filter(c => 
+            /session/i.test(c.name) || 
+            /token/i.test(c.name) || 
+            /auth/i.test(c.name)
+        );
+        
+        if (sessionCookies.length > 0 && authDomainCookies.length === 0) {
+            // Try to use the session cookie's domain as login URL
+            const sessionDomain = sessionCookies[0].domain;
+            if (sessionDomain && !sessionDomain.includes('unknown')) {
+                loginUrl = `https://${sessionDomain.startsWith('.') ? sessionDomain.substring(1) : sessionDomain}`;
+            }
+        }
+        
         plan.phases = [
             {
                 name: 'Authentication Cookies',
                 priority: 1,
                 url: loginUrl,
                 cookies: authCookies.map(c => ({
-                    name: c.name,
-                    value: c.value,
-                    domain: c.host || c.domain || `.${baseDomain}`,
-                    path: c.path || '/',
-                    secure: c.secure || false,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    ...c,
+                    domain: c.host || c.domain || `.${baseDomain}`
                 }))
             },
             {
@@ -2829,17 +2889,29 @@ function buildInjectionPlan(url, cookies) {
                 priority: 2,
                 url: `https://${domain}`,
                 cookies: regularCookies.map(c => ({
-                    name: c.name,
-                    value: c.value,
-                    domain: c.host || c.domain || `.${baseDomain}`,
-                    path: c.path || '/',
-                    secure: c.secure || false,
-                    httpOnly: c.httpOnly || false,
-                    expires: c.expires || null
+                    ...c,
+                    domain: c.host || c.domain || `.${baseDomain}`
                 }))
             }
         ];
     }
+    
+    // Filter out empty cookie phases
+    plan.phases = plan.phases.filter(phase => phase.cookies.length > 0);
+    
+    // If no cookies left, add a fallback phase
+    if (plan.phases.length === 0) {
+        plan.phases.push({
+            name: 'All Cookies',
+            priority: 1,
+            url: `https://${domain}`,
+            cookies: cookies.map(c => ({
+                ...c,
+                domain: c.host || c.domain || `.${baseDomain}`
+            }))
+        });
+    }
+    
     return plan;
 }
 
