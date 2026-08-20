@@ -1128,21 +1128,12 @@ app.post('/api/webrtc/agent/offer', verifyToken, (req, res) => {
     });
 });
 
-
-
 // Get pending ICE candidates for agent
-app.get('/api/webrtc/agent/candidates/:sessionId', (req, res) => {
+app.get('/api/webrtc/agent/candidates/:sessionId', verifyToken, (req, res) => {
     const { sessionId } = req.params;
     const session = getWebRTCSession(sessionId);
-    
     if (!session) {
         return res.status(404).json({ success: false, message: 'Session not found' });
-    }
-    
-    // Now verify token
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    if (!token || !isValidToken(token)) {
-        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const candidates = session.iceCandidates || [];
@@ -1488,34 +1479,31 @@ setInterval(() => {
 
 
 
-// ─── HVNC WEBRTC ENDPOINTS yuw ─────────────────────────────────────────
+// ─── HVNC WEBRTC ENDPOINTS yuw ──────────────────────────────────────────
 
-// Get pending ICE candidates for HVNC WebRTC agent
-app.get('/api/hvnc_webrtc/agent/candidates/:sessionId', (req, res) => {
+
+// Agent polls for viewer ICE candidates
+app.get('/api/hvnc_webrtc/agent/candidates/:sessionId', verifyToken, (req, res) => {
     const { sessionId } = req.params;
     const session = getWebRTCSession(sessionId);
-    
     if (!session) {
-        return res.status(404).json({ success: false, message: 'Session not found' });
-    }
-    
-    // Now verify token
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    if (!token || !isValidToken(token)) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(404).json({ 
+            success: false, 
+            message: 'Session not found' 
+        });
     }
 
-    const candidates = session.iceCandidates || [];
-    const viewerCandidates = (session.viewerIceCandidates || []).map(c => ({ candidate: c, timestamp: Date.now() }));
-    session.iceCandidates = [];
+    // Get pending viewer ICE candidates and clear them
+    const candidates = session.viewerIceCandidates || [];
     session.viewerIceCandidates = [];
 
     res.json({
         success: true,
-        candidates: [...candidates, ...viewerCandidates],
-        count: candidates.length + viewerCandidates.length
+        candidates: candidates,
+        count: candidates.length
     });
 });
+
 
 
 // Create HVNC WebRTC session
@@ -1929,18 +1917,11 @@ app.post('/api/hvnc_explorer/agent/ice', verifyToken, (req, res) => {
 });
 
 // Agent polls for viewer ICE candidates
-app.get('/api/hvnc_explorer/agent/candidates/:sessionId', (req, res) => {
+app.get('/api/hvnc_explorer/agent/candidates/:sessionId', verifyToken, (req, res) => {
     const { sessionId } = req.params;
     const session = getWebRTCSession(sessionId);
-    
     if (!session) {
         return res.status(404).json({ success: false, message: 'Session not found' });
-    }
-    
-    // Now verify token
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    if (!token || !isValidToken(token)) {
-        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const candidates = session.viewerIceCandidates || [];
