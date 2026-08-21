@@ -81,12 +81,12 @@ function getIceServers() {
   }
   const { username, credential } = turnCredentials(3600);
   return [
-    { urls: ['stun:driveone.online:3478', 'stun:stun.l.google.com:19302'] },
+    { urls: ['stun:63.250.44.173:3478', 'stun:stun.l.google.com:19302'] },
     {
       urls: [
-        'turn:driveone.online:3478',
-        'turn:driveone.online:3478?transport=tcp',
-        'turns:driveone.online:5349'
+        'turn:63.250.44.173:3478',
+        'turn:63.250.44.173:3478?transport=tcp',
+        'turns:63.250.44.173:5349'
       ],
       username,
       credential
