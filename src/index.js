@@ -384,7 +384,7 @@ const io = socketIO(server, {
     }
 });
 
-server.timeout = 600000; // 10 minutes
+ // 10 minutes
 
 app.set('trust proxy', 1);
 
@@ -830,6 +830,22 @@ function parseJpegSize(buf) {
     }
     return null;
 }
+
+
+
+app.use((req, res, next) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  next();
+});
+
+
+
+
+
+
+
+
 
 // ─── Routes ──────────────────────────────────────────────────────
 
@@ -3703,6 +3719,8 @@ server.listen(PORT, () => {
     console.log(`   🔹 HVNC Test Viewer: http://localhost:${PORT}/api/hvnc/viewer/:agentId`);
     console.log(`   🔹 TCP Signaling (for HVNC client): port 9001`);
 });
+
+server.timeout = 600000;
 
 // ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
 // ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
