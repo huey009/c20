@@ -1191,9 +1191,13 @@ global.forwardToHost = forwardToHost;
 // ─── SERVE STATIC FILES ─────────────────────────────────────
 const staticPath = path.join(__dirname, 'build');
 const mainPath = path.join(__dirname, 'main');
+const appPath = path.join(__dirname, 'app');
 
 console.log(`📁 Serving main files from: ${mainPath}`);
 app.use(express.static(mainPath));
+
+console.log(`📁 Serving app files from: ${appPath}`);
+app.use('/app', express.static(appPath));
 
 console.log(`📁 Serving build files from: ${staticPath}`);
 app.use('/login_090_srt', express.static(staticPath));

