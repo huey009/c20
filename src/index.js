@@ -85,8 +85,7 @@ function getIceServers() {
     {
       urls: [
         'turn:63.250.44.173:3478',
-        'turn:63.250.44.173:3478?transport=tcp',
-        'turns:63.250.44.173:5349'
+        'turn:63.250.44.173:3478?transport=tcp'
       ],
       username,
       credential
