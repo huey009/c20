@@ -81,12 +81,10 @@ function getIceServers() {
   }
   const { username, credential } = turnCredentials(3600);
   return [
-    { urls: ['stun:63.250.44.173:3478', 'stun:stun.l.google.com:19302'] },
+    { urls: 'stun:63.250.44.173:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
     {
-      urls: [
-        'turn:63.250.44.173:3478',
-        'turn:63.250.44.173:3478?transport=tcp'
-      ],
+      urls: 'turn:63.250.44.173:3478',    // ← ONLY the plain UDP URL
       username,
       credential
     }
