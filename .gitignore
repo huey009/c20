@@ -1,4 +1,5 @@
 "c2_framework.db" 
+".sql"
 "*.db" 
 "*.log" 
 "node_modules/" 
