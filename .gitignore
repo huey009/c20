@@ -4,7 +4,6 @@ node_modules/
 *.sqlite
 *.sqlite3
 c2_framework.db
-dist/
 build/
 *.log
 .DS_Store
