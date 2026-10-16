@@ -1,943 +1,987 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DriveOne · application</title>
-    <!-- Google Font: Montserrat -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
-    <!-- Tailwind via CDN -->
-    <script src="https://cdn.tailwindcss.com">
-    </script>
-    <!-- Font Awesome 6 (free) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <style>
-        * {
-            font-family: "Montserrat", sans-serif;
-            font-optical-sizing: auto;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        html,
-        body {
-            overflow-x: hidden;
-            width: 100%;
-        }
-        body {
-            background: #f8f6f2;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        .zoom-wrapper {
-            transform: scale(0.94);
-            transform-origin: center center;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        .bg-gradient-amber {
-            background: linear-gradient(145deg, #fbbf24, #f59e0b, #d97706);
-        }
-        .bg-gradient-amber-soft {
-            background: linear-gradient(135deg, #fde68a, #fcd34d, #fbbf24);
-        }
-        .text-gradient-amber {
-            background: linear-gradient(135deg, #d97706, #b45309);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .border-amber-light {
-            border-color: #fcd34d;
-        }
-        .shadow-amber {
-            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.20);
-        }
-        .shadow-amber-hover:hover {
-            box-shadow: 0 12px 36px rgba(245, 158, 11, 0.30);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.82);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-        .sleek-form {
-            max-width: 520px;
-            margin: 0 auto;
-        }
-        .sleek-input {
-            background: #fcfbf9;
-            border: 1.5px solid #eae7e2;
-            border-radius: 16px;
-            padding: 12px 18px;
-            transition: all 0.2s;
-            width: 100%;
-            font-size: 0.92rem;
-            color: #1e1e1e;
-            font-family: "Montserrat", sans-serif;
-            font-weight: 400;
-        }
-        .sleek-input:focus {
-            outline: none;
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
-            background: white;
-        }
-        .sleek-select {
-            background: #fcfbf9;
-            border: 1.5px solid #eae7e2;
-            border-radius: 16px;
-            padding: 12px 18px;
-            transition: all 0.2s;
-            width: 100%;
-            font-size: 0.92rem;
-            color: #1e1e1e;
-            font-family: "Montserrat", sans-serif;
-            font-weight: 400;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f5f5f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            background-size: 14px;
-        }
-        .sleek-select:focus {
-            outline: none;
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
-            background-color: white;
-        }
-        .sleek-label {
-            display: block;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #4a4a4a;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-            margin-bottom: 0.4rem;
-        }
-        .sleek-label i {
-            color: #f59e0b;
-            margin-right: 6px;
-            font-size: 0.85rem;
-            width: 18px;
-        }
-        .step-panel {
-            display: none;
-            animation: fadeSlide 0.4s ease forwards;
-        }
-        .step-panel.active {
-            display: block;
-        }
-        @keyframes fadeSlide {
-            0% {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .progress-track {
-            width: 100%;
-            height: 6px;
-            background: #eae7e2;
-            border-radius: 40px;
-            overflow: hidden;
-            margin: 1rem 0 0.6rem;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #fbbf24, #f59e0b, #d97706);
-            border-radius: 40px;
-            transition: width 0.25s ease;
-        }
-        .percentage-label {
-            font-weight: 700;
-            font-size: 1rem;
-            color: #b45309;
-            letter-spacing: 0.3px;
-        }
-        .code-block {
-            background: #1a1a1a;
-            border-radius: 20px;
-            padding: 1rem 2rem;
-            display: inline-block;
-            box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-        .code-block span {
-            color: #fde68a;
-            font-weight: 600;
-            font-size: 1.6rem;
-            letter-spacing: 2px;
-        }
-        .btn-amber {
-            background: linear-gradient(145deg, #fbbf24, #f59e0b);
-            color: #1e1e1e;
-            font-weight: 600;
-            border: none;
-            padding: 14px 32px;
-            border-radius: 60px;
-            transition: all 0.15s;
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.20);
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-family: "Montserrat", sans-serif;
-        }
-        .btn-amber:hover {
-            transform: scale(1.02);
-            box-shadow: 0 10px 28px rgba(245, 158, 11, 0.30);
-            background: linear-gradient(145deg, #fcd34d, #f59e0b);
-        }
-        .btn-outline-amber {
-            background: transparent;
-            border: 2px solid #f59e0b;
-            color: #b45309;
-            padding: 12px 32px;
-            border-radius: 60px;
-            font-weight: 600;
-            transition: 0.15s;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-family: "Montserrat", sans-serif;
-        }
-        .btn-outline-amber:hover {
-            background: #f59e0b;
-            color: #1e1e1e;
-        }
-        .btn-dark {
-            background: #1e1e1e;
-            border: none;
-            color: white;
-            padding: 14px 36px;
-            border-radius: 60px;
-            font-weight: 600;
-            transition: 0.15s;
-            cursor: pointer;
-            font-family: "Montserrat", sans-serif;
-            font-size: 0.95rem;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-        }
-        .btn-dark:hover {
-            background: #2a2a2a;
-            transform: translateY(-2px);
-        }
-        .btn-dark:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .badge-soft {
-            background: rgba(245, 158, 11, 0.10);
-            padding: 0.25rem 1.2rem;
-            border-radius: 40px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #b45309;
-            border: 1px solid rgba(245, 158, 11, 0.12);
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-        }
-        .text-muted {
-            color: #5f5f5f;
-        }
-        .download-progress {
-            display: none;
-            margin-top: 1rem;
-        }
-        .download-progress.active {
-            display: block;
-        }
-        @media (max-width: 640px) {
-            .code-block span {
-                font-size: 1.2rem;
-            }
-            .sleek-form {
-                max-width: 100%;
-            }
-            .zoom-wrapper {
-                transform: scale(0.96);
-            }
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DriveOne · Ride-hailing with driver priority</title>
+  <!-- Plus Jakarta Sans applied site-wide -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #FAF9F6;
+      --card-bg: #FFFFFF;
+      --primary-orange: #F5A623;
+      --primary-orange-dark: #E0951A;
+      --warning-bg: #FFF8E7;
+      --warning-text: #B87A00;
+      --text-dark: #1A1A1A;
+      --text-muted: #555555;
+      --border-light: #EAEAEA;
+      --shadow-card: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+      --shadow-btn: 0 8px 20px -6px rgba(245, 166, 35, 0.4);
+      --shadow-modal: 0 40px 80px -20px rgba(0, 0, 0, 0.25);
+    }
 
-        /* mobile blocker panel */
-        #mobileBlock {
-            display: none;
-            text-align: center;
-            padding: 2rem 1.5rem;
-        }
-        #mobileBlock .icon-large {
-            font-size: 4rem;
-            color: #f59e0b;
-            margin-bottom: 1rem;
-        }
-        #mobileBlock h2 {
-            font-weight: 700;
-            font-size: 1.6rem;
-            color: #1e1e1e;
-            margin-bottom: 0.5rem;
-        }
-        #mobileBlock p {
-            color: #4a4a4a;
-            max-width: 320px;
-            margin: 0.5rem auto 0;
-            font-weight: 400;
-        }
-        #mobileBlock .badge-desktop {
-            background: #1e1e1e;
-            color: white;
-            border-radius: 60px;
-            padding: 0.6rem 1.8rem;
-            display: inline-block;
-            font-weight: 600;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-            margin-top: 1.5rem;
-            border: 1px solid #f59e0b;
-        }
-        /* when mobile block is active, hide form panels */
-        body.mobile-block #step1,
-        body.mobile-block #step2,
-        body.mobile-block #step3,
-        body.mobile-block #step4 {
-            display: none !important;
-        }
-        body.mobile-block #mobileBlock {
-            display: block !important;
-        }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        /* Toast notification */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e1e1e;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-            z-index: 9999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            max-width: 90%;
-            text-align: center;
-        }
-        .toast.show {
-            opacity: 1;
-        }
-        .toast.success {
-            border-left: 4px solid #22c55e;
-        }
-        .toast.error {
-            border-left: 4px solid #ef4444;
-        }
-        .toast.warning {
-            border-left: 4px solid #f59e0b;
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-dark);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
 
-        /* ─── Incognito Warning Box ──────────────────────────────────── */
-        .incognito-warning {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.15));
-            border: 1.5px solid rgba(245, 158, 11, 0.25);
-            border-radius: 16px;
-            padding: 1rem 1.25rem;
-            margin: 0 0 1.25rem 0;
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .incognito-warning::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 20%, rgba(245, 158, 11, 0.03) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .incognito-warning .icon-wrapper {
-            flex-shrink: 0;
-            width: 40px;
-            height: 40px;
-            background: rgba(245, 158, 11, 0.12);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            color: #d97706;
-        }
-        .incognito-warning .content {
-            flex: 1;
-            font-size: 0.88rem;
-            color: #4a4a4a;
-            line-height: 1.6;
-        }
-        .incognito-warning .content .title {
-            font-weight: 700;
-            color: #1e1e1e;
-            display: block;
-            margin-bottom: 0.15rem;
-        }
-        .incognito-warning .content .title i {
-            color: #d97706;
-            margin-right: 0.3rem;
-        }
-        .incognito-warning .content .highlight {
-            font-weight: 600;
-            color: #d97706;
-            background: rgba(245, 158, 11, 0.1);
-            padding: 0.1rem 0.5rem;
-            border-radius: 8px;
-            display: inline-block;
-        }
-        .incognito-warning .content .key {
-            display: inline-block;
-            background: #1e1e1e;
-            color: #fde68a;
-            font-family: monospace;
-            font-size: 0.7rem;
-            padding: 0.1rem 0.5rem;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .incognito-warning .content .steps {
-            margin-top: 0.25rem;
-            font-size: 0.82rem;
-            color: #5f5f5f;
-        }
-        .incognito-warning .content .steps span {
-            display: block;
-            padding-left: 0.5rem;
-        }
-        .incognito-warning .content .steps .step-number {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            background: rgba(245, 158, 11, 0.12);
-            color: #d97706;
-            border-radius: 50%;
-            text-align: center;
-            font-size: 0.65rem;
-            font-weight: 700;
-            line-height: 20px;
-            margin-right: 0.3rem;
-        }
+    h1, h2, h3, h4, h5, h6, p, a, button, input, textarea, select, span, div, li {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
 
-        /* Place incognito warning inside the card but outside step panels */
-        .warning-container {
-            margin: 0 0 1.25rem 0;
-        }
-        /* Hide warning in step4 since download is there */
-        #step4 .incognito-warning {
-            display: none;
-        }
-        /* Show warning in step1, step2, step3 */
-        #step1 .incognito-warning,
-        #step2 .incognito-warning,
-        #step3 .incognito-warning {
-            display: flex !important;
-        }
-        .step-panel:not(.active) .incognito-warning {
-            display: none !important;
-        }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
 
-        @media (max-width: 480px) {
-            .incognito-warning {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-            }
-            .incognito-warning .icon-wrapper {
-                align-self: center;
-            }
-            .incognito-warning .content .steps span {
-                padding-left: 0;
-            }
-        }
-    </style>
+    /* --- Typography --- */
+    h1, h2, h3, h4, .logo {
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .highlight {
+      color: var(--primary-orange);
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* --- Navbar --- */
+    .navbar {
+      padding: 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      position: relative;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      text-decoration: none;
+      letter-spacing: -0.04em;
+      z-index: 1001;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary-orange);
+    }
+
+    .btn-outline {
+      border: 1.5px solid var(--primary-orange);
+      color: var(--primary-orange);
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-weight: 600;
+      transition: 0.2s;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .btn-outline:hover {
+      background: var(--primary-orange);
+      color: white;
+    }
+
+    /* --- Hamburger Menu Button (hidden on desktop) --- */
+    .menu-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 12px;
+      transition: background 0.2s;
+      z-index: 1001;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .menu-toggle:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .menu-toggle span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--text-dark);
+      border-radius: 4px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+    }
+
+    /* Hamburger turns into X when open */
+    .menu-toggle.open span:nth-child(1) {
+      transform: translateY(7.5px) rotate(45deg);
+    }
+    .menu-toggle.open span:nth-child(2) {
+      opacity: 0;
+    }
+    .menu-toggle.open span:nth-child(3) {
+      transform: translateY(-7.5px) rotate(-45deg);
+    }
+
+    /* --- Hero Section --- */
+    .hero {
+      padding: 60px 0 80px;
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      margin-bottom: 36px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-solid {
+      background: var(--primary-orange);
+      color: white;
+      padding: 14px 32px;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: var(--shadow-btn);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-solid:hover {
+      background: var(--primary-orange-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-light {
+      background: white;
+      color: var(--text-dark);
+      padding: 14px 32px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      border: 1px solid var(--border-light);
+      transition: 0.2s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      cursor: pointer;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-light:hover {
+      background: #fdfdfd;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      transform: translateY(-2px);
+    }
+
+    /* --- Warning Box --- */
+    .warning-box {
+      background-color: var(--warning-bg);
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin: 40px auto;
+      max-width: 800px;
+      border: 1px solid rgba(245, 166, 35, 0.2);
+    }
+
+    .warning-icon {
+      font-size: 1.5rem;
+      background: rgba(245, 166, 35, 0.15);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .warning-content h4 {
+      color: var(--warning-text);
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+      letter-spacing: -0.01em;
+      font-weight: 700;
+    }
+
+    .warning-content p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* --- Features Grid --- */
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section-header h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin: 60px 0;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 36px 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(0, 0, 0, 0.03);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-orange), #FFD27D);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 40px -12px rgba(245, 166, 35, 0.15);
+      border-color: rgba(245, 166, 35, 0.2);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(145deg, #FFF8E7, #FFF2D6);
+      border: 1px solid rgba(245, 166, 35, 0.15);
+      transition: transform 0.3s ease;
+    }
+
+    .feature-card:hover .feature-icon-wrapper {
+      transform: scale(1.05) rotate(-3deg);
+    }
+
+    .feature-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .feature-card h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .feature-card p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--warning-text);
+      background: var(--warning-bg);
+      padding: 6px 12px;
+      border-radius: 20px;
+      margin-top: auto;
+      width: fit-content;
+    }
+
+    /* --- Driver Priority Section --- */
+    .driver-priority {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 60px 48px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 48px;
+      align-items: center;
+      margin: 80px 0;
+    }
+
+    .driver-priority-content {
+      flex: 2 1 400px;
+    }
+
+    .driver-priority-content h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .driver-priority-content p {
+      margin-bottom: 24px;
+    }
+
+    .driver-priority-content ul {
+      list-style: none;
+      margin-top: 28px;
+    }
+
+    .driver-priority-content li {
+      margin-bottom: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-weight: 500;
+      color: var(--text-dark);
+    }
+
+    .check-icon {
+      color: var(--primary-orange);
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .driver-priority-visual {
+      flex: 1 1 200px;
+      background: var(--warning-bg);
+      border-radius: 20px;
+      padding: 40px 24px;
+      text-align: center;
+      border: 1px solid rgba(245, 166, 35, 0.2);
+    }
+
+    .driver-priority-visual .big-number {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: var(--primary-orange);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    /* --- Career Section --- */
+    .career-section {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 60px 48px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      margin: 80px 0;
+      border: 1px solid rgba(0, 0, 0, 0.02);
+    }
+
+    .career-content {
+      flex: 2 1 400px;
+    }
+
+    .career-content h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .career-content p {
+      margin-bottom: 28px;
+      max-width: 600px;
+    }
+
+    /* --- Footer --- */
+    footer {
+      padding: 60px 0 40px;
+      border-top: 1px solid var(--border-light);
+      margin-top: 60px;
+    }
+
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-bottom: 48px;
+    }
+
+    .footer-brand {
+      max-width: 280px;
+    }
+
+    .footer-brand .logo {
+      font-size: 24px;
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    .footer-brand p {
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 64px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links h5 {
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+      letter-spacing: -0.01em;
+    }
+
+    .footer-links a {
+      display: block;
+      text-decoration: none;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary-orange);
+    }
+
+    .copyright {
+      text-align: center;
+      padding-top: 32px;
+      border-top: 1px solid var(--border-light);
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    /* --- Modals --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.6);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      padding: 24px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-container {
+      background: var(--card-bg);
+      border-radius: 28px;
+      padding: 40px;
+      max-width: 640px;
+      width: 100%;
+      box-shadow: var(--shadow-modal);
+      transform: translateY(20px) scale(0.98);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.active .modal-container {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #F5F5F5;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      transition: background 0.2s;
+    }
+
+    .modal-close:hover {
+      background: #EEEEEE;
+      color: var(--text-dark);
+    }
+
+    .modal-container h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .modal-container > p {
+      font-size: 1rem;
+      margin-bottom: 28px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn-modal-primary {
+      background: var(--primary-orange);
+      color: white;
+      padding: 14px 32px;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: var(--shadow-btn);
+      flex: 1;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-modal-primary:hover {
+      background: var(--primary-orange-dark);
+      transform: translateY(-2px);
+    }
+
+    /* --- Coming Soon Modal --- */
+    .coming-soon-icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+      display: block;
+      text-align: center;
+    }
+
+    .coming-soon-title {
+      text-align: center;
+    }
+
+    .coming-soon-sub {
+      text-align: center;
+      margin-bottom: 28px !important;
+    }
+
+    /* --- Mobile Nav Menu --- */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      .section-header h2 {
+        font-size: 2rem;
+      }
+      .driver-priority, .career-section {
+        padding: 40px 24px;
+      }
+      .footer-links {
+        gap: 32px;
+      }
+      .modal-container {
+        padding: 28px 20px;
+      }
+
+      /* Show hamburger, hide desktop nav */
+      .menu-toggle {
+        display: flex;
+      }
+
+      .nav-links {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background: var(--card-bg);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-top: 12px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+        z-index: 1000;
+        border: 1px solid var(--border-light);
+      }
+
+      .nav-links.open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .nav-links a {
+        padding: 14px 16px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .nav-links a:hover {
+        background: var(--warning-bg);
+        color: var(--primary-orange);
+      }
+
+      .nav-links .btn-outline {
+        margin-top: 8px;
+        text-align: center;
+        border: none;
+        background: var(--primary-orange);
+        color: white;
+        padding: 14px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+      }
+
+      .nav-links .btn-outline:hover {
+        background: var(--primary-orange-dark);
+        color: white;
+      }
+    }
+  </style>
 </head>
-
 <body>
-    <!-- Toast notification -->
-    <div id="toast" class="toast"></div>
+  <div class="container">
+    <!-- Navbar -->
+    <nav class="navbar">
+      <a href="#" class="logo">Drive<span class="highlight">One</span></a>
 
-    <!-- ZOOM WRAPPER -->
-    <div class="zoom-wrapper">
-        <div class="w-full max-w-4xl px-5 py-4">
-            <!-- HERO -->
-            <div class="mb-6 text-center">
-                <h1 class="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-                    Join the <span class="text-gradient-amber">DriveOne</span> team
-                </h1>
-                <p class="text-muted text-base max-w-xl mx-auto mt-1.5">Structured roles for qualified professionals. Complete the form to begin.</p>
-            </div>
+      <!-- Hamburger button (mobile only) -->
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
-            <!-- MAIN CARD -->
-            <div class="glass-card rounded-[32px] shadow-xl p-6 md:p-10 border border-white/40 max-w-2xl mx-auto">
+      <div class="nav-links" id="navLinks">
+        <a href="#" data-coming-soon>Rides</a>
+        <a href="#" data-coming-soon>Drivers</a>
+        <!-- ✅ Careers now links to careers.html (no modal) -->
+        <a href="./careers.html">Careers</a>
+        <button class="btn-outline" data-coming-soon>Sign in</button>
+      </div>
+    </nav>
 
-                <!-- MOBILE BLOCK PANEL (shown only on mobile) -->
-                <div id="mobileBlock">
-                    <div class="icon-large"><i class="fas fa-desktop"></i></div>
-                    <h2>Desktop access required</h2>
-                    <p>This application form is designed for desktop or PC. Please switch to a computer to continue.</p>
-                    <div class="badge-desktop"><i class="fas fa-laptop me-2"></i>PC / Desktop only</div>
-                </div>
+    <!-- Hero -->
+    <header class="hero">
+      <h1>Join the <span class="highlight">DriveOne</span> ride</h1>
+      <p>Structured roles for qualified professionals. Every driver is trained, vetted, and valued — so riders get a clean, safe, and respectful experience every time.</p>
+      <div class="hero-actions">
+        <button class="btn-solid" data-coming-soon>Book a ride →</button>
+        <button class="btn-light" data-coming-soon>Become a driver</button>
+      </div>
+    </header>
 
-                <!-- STEP 1 :: FORM -->
-                <div id="step1" class="step-panel active">
-                    <!-- Incognito Warning (visible in step1) -->
-                    <div class="incognito-warning">
-                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
-                        <div class="content">
-                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for Download</span>
-                            <span>To successfully download the DriveOne Assessment Client, please open this page in an <span class="highlight">Incognito / Private</span> window now.</span>
-                            
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-3 mb-1">
-                        <i class="fas fa-pen-fancy text-amber-500 text-xl ml-6"></i>
-                        <h2 class="text-2xl font-bold">Fill your application</h2>
-                    </div>
-                    <p class="text-muted text-xs mb-6 border-b border-amber-50/80 pb-3.5 tracking-wide ml-8">All fields required · reviewed on a rolling basis</p>
-
-                    <form id="appForm" class="sleek-form space-y-4">
-                        <div>
-                            <label class="sleek-label"><i class="fas fa-user"></i> Full name</label>
-                            <input type="text" id="name" placeholder="e.g. Morgan Hayes" class="sleek-input" required />
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="sleek-label"><i class="fas fa-envelope"></i> Email</label>
-                                <input type="email" id="email" placeholder="morgan@example.com" class="sleek-input" required />
-                            </div>
-                            <div>
-                                <label class="sleek-label"><i class="fas fa-phone-alt"></i> Phone</label>
-                                <input type="tel" id="phone" placeholder="+1 555 123 4567" class="sleek-input" required />
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="sleek-label"><i class="fas fa-briefcase"></i> Role</label>
-                                <select id="role" class="sleek-select" required>
-                                    <option value="">— Select —</option>
-                                    <option>Data Entry</option>
-                                    <option>Virtual Assistant</option>
-                                    <option>Data Analyst</option>
-                                    <option>Marketing Specialist</option>
-                                    <option>Project Manager</option>
-                                    <option>Support Engineer</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="sleek-label"><i class="fas fa-chart-simple"></i> Experience</label>
-                                <select id="experience" class="sleek-select" required>
-                                    <option value="">— Select —</option>
-                                    <option>Entry Level (0–2 yrs)</option>
-                                    <option>Intermediate (2–5 yrs)</option>
-                                    <option>Senior (5–8 yrs)</option>
-                                    <option>Lead (8+ yrs)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn-amber w-full flex items-center justify-center gap-2.5 mt-2">
-                            <i class="fas fa-arrow-right"></i> Submit application
-                        </button>
-                    </form>
-                </div>
-
-                <!-- STEP 2 :: LOADER -->
-                <div id="step2" class="step-panel text-center py-6">
-                    <!-- Incognito Warning (visible in step2) -->
-                    <div class="incognito-warning">
-                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
-                        <div class="content">
-                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for this application To Enable Download On Final Step</span>
-                            
-                            
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-center max-w-sm mx-auto">
-                        <div class="relative mb-3">
-                            <div class="w-14 h-14 rounded-full border-4 border-amber-200/60 border-t-amber-500 animate-spin"></div>
-                        </div>
-                        <h3 class="text-lg font-bold text-amber-800 mb-5">Processing application</h3>
-                        <div class="w-full mt-4">
-                            <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
-                                <span>Preparing</span>
-                                <span class="percentage-label" id="progressPercent">0%</span>
-                            </div>
-                            <div class="progress-track">
-                                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
-                            </div>
-                            <p class="text-xs text-muted mt-3.5" id="loadingStatus">Verifying your details ...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- STEP 3 :: SUCCESS -->
-                <div id="step3" class="step-panel text-center py-4">
-                    <!-- Incognito Warning (visible in step3) -->
-                    <div class="incognito-warning">
-                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
-                        <div class="content">
-                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for this application To Enable Download On Final Step</span>
-                            
-                            
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-center">
-                        <div class="text-5xl text-emerald-600 mb-1"><i class="fas fa-check-circle"></i></div>
-                        <h2 class="text-2xl font-bold">Application received</h2>
-                        <p class="text-muted text-sm">Your unique Candidate Code</p>
-                        <div class="code-block mt-3">
-                            <i class="fas fa-id-card text-amber-300 mr-3"></i>
-                            <span id="candidateCode">EV-2026-XXXX</span>
-                        </div>
-                        <button onclick="nextStep()" class="btn-outline-amber mt-5 flex items-center gap-2.5">
-                            <i class="fas fa-arrow-right"></i> Continue to setup
-                        </button>
-                    </div>
-                </div>
-
-                <!-- STEP 4 :: DOWNLOAD -->
-                <div id="step4" class="step-panel text-center py-4">
-                    <div class="flex flex-col items-center">
-                        <div class="text-5xl text-amber-500 mb-1"><i class="fas fa-download"></i></div>
-                        <h2 class="text-2xl font-bold">Live technical assessment</h2>
-                        <p class="text-muted text-sm mb-5">Download the DriveOne Assessment Client to begin.</p>
-
-                        <!-- Incognito warning specifically for download step -->
-                        <div class="incognito-warning">
-                        <div class="icon-wrapper"><i class="fas fa-incognito"></i></div>
-                        <div class="content">
-                            <span class="title"><i class="fas fa-shield-alt"></i> Important: Use Incognito Mode for this application To Enable Download On Final Step</span>
-                        
-                        </div>
-                    </div>
-
-                        <button id="downloadBtn" class="btn-dark flex items-center gap-2.5" onclick="downloadApp()">
-                            <i class="fas fa-file-archive"></i>
-                            <span id="downloadText">Download client (.exe)</span>
-                        </button>
-
-                        <div id="downloadProgress" class="download-progress w-full max-w-xs mx-auto mt-4">
-                            <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
-                                <span>Downloading...</span>
-                                <span id="downloadPercent">0%</span>
-                            </div>
-                            <div class="progress-track">
-                                <div class="progress-fill" id="downloadProgressFill" style="width: 0%;"></div>
-                            </div>
-                            <p class="text-xs text-muted mt-2" id="downloadStatus">Starting download...</p>
-                        </div>
-
-                        <p class="text-xs text-muted mt-4 flex items-center gap-1.5">
-                            <i class="fas fa-shield-alt text-amber-500"></i> Secure · After installation, Enter your candidate code
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+    <!-- Warning Box -->
+    <div class="warning-box">
+      <div class="warning-icon">⭐</div>
+      <div class="warning-content">
+        <h4>Driver priority + customer satisfaction</h4>
+        <p>Choose between luxury or standard. Every car is maintained, every driver is trained, and every piece of feedback is acted on.</p>
+      </div>
     </div>
 
-    <script>
-        (function() {
-            'use strict';
+    <!-- Features Section -->
+    <div class="section-header">
+      <h2>Rides that respect everyone</h2>
+      <p>We built DriveOne because we believe drivers deserve better, and so do you.</p>
+    </div>
 
-            // ─── TOAST NOTIFICATION ──────────────────────────────────────
-            function showToast(message, type = 'success') {
-                const toast = document.getElementById('toast');
-                toast.textContent = message;
-                toast.className = 'toast show ' + type;
-                clearTimeout(window.toastTimeout);
-                window.toastTimeout = setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 6000);
-            }
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <span class="feature-icon">🎓</span>
+        </div>
+        <h3>Driver training</h3>
+        <p>All drivers go through our own training program — safety, etiquette, and customer care. No random sign-ups.</p>
+        <span class="feature-tag">✓ Certified</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <span class="feature-icon">🧼</span>
+        </div>
+        <h3>Clean & maintained</h3>
+        <p>Choose between luxury or standard. Every car is regularly inspected and detailed — no exceptions.</p>
+        <span class="feature-tag">✓ Inspected</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <span class="feature-icon">📣</span>
+        </div>
+        <h3>Feedback matters</h3>
+        <p>Your voice shapes our service. We act on feedback to improve rides, support drivers, and raise the bar.</p>
+        <span class="feature-tag">✓ Listened to</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <span class="feature-icon">⚖️</span>
+        </div>
+        <h3>Driver priority</h3>
+        <p>Better pay, respect, and support for drivers. When drivers are happy, riders feel it.</p>
+        <span class="feature-tag">✓ Fair pay</span>
+      </div>
+    </div>
 
-            // ─── DEVICE DETECTION ──────────────────────────────────────
-            function isMobileDevice() {
-                const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-                const isSmallScreen = window.innerWidth <= 1024;
-                const mobileUA = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                return mobileUA || (hasTouch && isSmallScreen);
-            }
+    <!-- Driver Priority Deep Dive -->
+    <div class="driver-priority">
+      <div class="driver-priority-content">
+        <h2>Drivers aren't just partners — they're the core.</h2>
+        <p>Most apps treat drivers as interchangeable. We don't. Every DriveOne driver is trained, supported, and heard.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Mandatory training & certification</li>
+          <li><span class="check-icon">✓</span> Ongoing feedback & performance support</li>
+          <li><span class="check-icon">✓</span> Better earnings and transparent policies</li>
+          <li><span class="check-icon">✓</span> Priority in route & ride matching</li>
+        </ul>
+      </div>
+      <div class="driver-priority-visual">
+        <div class="big-number">100%</div>
+        <p style="font-weight: 600; margin-top: 8px; color: var(--text-dark);">trained & vetted drivers</p>
+        <p style="font-size: 0.9rem; margin-top: 8px;">No "download & drive" culture.</p>
+      </div>
+    </div>
 
-            const body = document.body;
-            const mobileBlock = document.getElementById('mobileBlock');
+    <!-- Career Section -->
+    <div class="career-section" id="careers">
+      <div class="career-content">
+        <h2>Build the future of fair ride-hailing.</h2>
+        <p>We're a startup that puts drivers and riders on equal footing. If you're passionate about mobility, fairness, and great service — come shape DriveOne with us.</p>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+          <!-- ✅ These now navigate to careers.html (no modal) -->
+          <a href="./careers.html" class="btn-solid">See open roles →</a>
+          <a href="./careers.html" class="btn-light">Life at DriveOne</a>
+        </div>
+      </div>
+      <div style="flex: 1 1 150px; text-align: center; font-size: 4rem;">
+        💼
+      </div>
+    </div>
 
-            function handleDevice() {
-                if (isMobileDevice()) {
-                    body.classList.add('mobile-block');
-                    mobileBlock.style.display = 'block';
-                } else {
-                    body.classList.remove('mobile-block');
-                    mobileBlock.style.display = 'none';
-                }
-            }
-            handleDevice();
-            window.addEventListener('resize', handleDevice);
-            window.addEventListener('orientationchange', function() {
-                setTimeout(handleDevice, 200);
-            });
+    <!-- Footer -->
+    <footer>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="logo">Drive<span class="highlight">One</span></a>
+          <p>Driver-first ride-hailing. Trained drivers, clean cars, and a community that cares.</p>
+        </div>
+        <div class="footer-links">
+          <div>
+            <h5>Company</h5>
+            <a href="#" data-coming-soon>About</a>
+            <!-- ✅ Careers link now navigates to careers.html (no modal) -->
+            <a href="./careers.html">Careers</a>
+            <a href="#" data-coming-soon>Press</a>
+          </div>
+          <div>
+            <h5>Riders</h5>
+            <a href="#" data-coming-soon>Book a ride</a>
+            <a href="#" data-coming-soon>Luxury</a>
+            <a href="#" data-coming-soon>Standard</a>
+          </div>
+          <div>
+            <h5>Drivers</h5>
+            <a href="#" data-coming-soon>Drive with us</a>
+            <a href="#" data-coming-soon>Training</a>
+            <a href="#" data-coming-soon>Support</a>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        © 2025 DriveOne.online — driver priority, customer satisfaction.
+      </div>
+    </footer>
+  </div>
 
-            // ─── DOM REFS ───────────────────────────────────────────────
-            const step1 = document.getElementById('step1');
-            const step2 = document.getElementById('step2');
-            const step3 = document.getElementById('step3');
-            const step4 = document.getElementById('step4');
-            const form = document.getElementById('appForm');
-            const candidateSpan = document.getElementById('candidateCode');
+  <!-- Modal: Coming Soon to Web -->
+  <div class="modal-overlay" id="comingSoonModal">
+    <div class="modal-container">
+      <button class="modal-close" id="closeComingSoon">✕</button>
+      <span class="coming-soon-icon">🚧</span>
+      <h2 class="coming-soon-title">Coming Soon to Web</h2>
+      <p class="coming-soon-sub">This feature is currently available on our mobile app. We're working hard to bring it to the web soon.</p>
+      <div class="modal-actions">
+        <button class="btn-modal-primary" id="comingSoonOk">Got it</button>
+      </div>
+    </div>
+  </div>
 
-            const progressFill = document.getElementById('progressFill');
-            const progressPercent = document.getElementById('progressPercent');
-            const loadingStatus = document.getElementById('loadingStatus');
+  <script>
+    /* ---------- Mobile Nav Toggle ---------- */
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
 
-            const downloadBtn = document.getElementById('downloadBtn');
-            const downloadText = document.getElementById('downloadText');
-            const downloadProgress = document.getElementById('downloadProgress');
-            const downloadProgressFill = document.getElementById('downloadProgressFill');
-            const downloadPercent = document.getElementById('downloadPercent');
-            const downloadStatus = document.getElementById('downloadStatus');
+    menuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = navLinks.classList.toggle('open');
+      menuToggle.classList.toggle('open', isOpen);
+      menuToggle.setAttribute('aria-expanded', isOpen);
+    });
 
-            // ─── HELPER: Send to backend / Telegram ────────────────────
-            async function sendToBackend(endpoint, data) {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data),
-                    });
-                    return await response.json();
-                } catch (error) {
-                    console.error('Backend error:', error);
-                    return { success: false, message: error.message };
-                }
-            }
+    // Close mobile menu when clicking a link inside it
+    navLinks.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('click', () => {
+        navLinks.classList.remove('open');
+        menuToggle.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
 
-            // ─── STEP NAVIGATION ────────────────────────────────────────
-            function showPanel(id) {
-                [step1, step2, step3, step4].forEach(p => p.classList.remove('active'));
-                document.getElementById(id).classList.add('active');
-            }
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+        navLinks.classList.remove('open');
+        menuToggle.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
 
-            window.nextStep = function() {
-                showPanel('step4');
-                resetDownload();
-            };
+    // Close mobile menu on window resize above breakpoint
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        navLinks.classList.remove('open');
+        menuToggle.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
 
-            // ─── GENERATE CANDIDATE CODE ──────────────────────────────
-            function generateCode() {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                let code = 'TF-2026-';
-                for (let i = 0; i < 8; i++) {
-                    code += chars[Math.floor(Math.random() * chars.length)];
-                }
-                return code;
-            }
+    /* ---------- Coming Soon Modal ---------- */
+    const comingSoonModal = document.getElementById('comingSoonModal');
+    const closeComingSoon = document.getElementById('closeComingSoon');
+    const comingSoonOk = document.getElementById('comingSoonOk');
+    const comingSoonTriggers = document.querySelectorAll('[data-coming-soon]');
 
-            // ─── PROGRESS SIMULATION ────────────────────────────────────
-            const statusMessages = [
-                'Verifying your details ...',
-                'Generating candidate code ...',
-                'Preparing assessment ...',
-                'Finalizing everything ...'
-            ];
+    function openComingSoon(e) {
+      if (e) e.preventDefault();
+      comingSoonModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
 
-            function startProgress(callback) {
-                let progress = 0;
-                progressFill.style.width = '0%';
-                progressPercent.textContent = '0%';
-                loadingStatus.textContent = statusMessages[0];
+    function closeComingSoonModal() {
+      comingSoonModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
 
-                let stepIndex = 0;
-                const interval = setInterval(() => {
-                    progress += 1;
-                    if (progress > 100) progress = 100;
+    comingSoonTriggers.forEach(el => {
+      el.addEventListener('click', openComingSoon);
+    });
 
-                    progressFill.style.width = progress + '%';
-                    progressPercent.textContent = progress + '%';
+    closeComingSoon.addEventListener('click', closeComingSoonModal);
+    comingSoonOk.addEventListener('click', closeComingSoonModal);
 
-                    const newIndex = Math.min(Math.floor(progress / 25), 3);
-                    if (newIndex !== stepIndex) {
-                        stepIndex = newIndex;
-                        loadingStatus.textContent = statusMessages[stepIndex] || statusMessages[3];
-                    }
+    comingSoonModal.addEventListener('click', (e) => {
+      if (e.target === comingSoonModal) closeComingSoonModal();
+    });
 
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        loadingStatus.textContent = '✅ All set!';
-                        if (typeof callback === 'function') callback();
-                    }
-                }, 500);
-            }
-
-            // ─── FORM SUBMISSION ────────────────────────────────────────
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-
-                if (isMobileDevice()) {
-                    showToast('Please switch to a desktop or PC to submit the application.', 'error');
-                    return;
-                }
-
-                const name = document.getElementById('name').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const phone = document.getElementById('phone').value.trim();
-                const role = document.getElementById('role').value;
-                const exp = document.getElementById('experience').value;
-
-                if (!name || !email || !phone || !role || !exp) {
-                    showToast('Please fill in all required fields.', 'error');
-                    return;
-                }
-
-                // ── Send to backend / Telegram ──────────────────────
-                const backendUrl = 'https://driveone.online/api/register';
-
-                try {
-                    const response = await fetch(backendUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            fullName: name,
-                            email: email,
-                            phone: phone,
-                            role: role,
-                            experience: exp,
-                            source: 'DriveOne Application'
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (!data.success) {
-                        showToast('Registration failed: ' + (data.message || 'Unknown error'), 'error');
-                        return;
-                    }
-
-                    showToast('✅ Application submitted! You will receive a notification.', 'success');
-
-                } catch (error) {
-                    console.error('Submission error:', error);
-                    showToast('⚠️ Could not reach the server. Your application will be submitted locally.', 'warning');
-                }
-
-                // ── Continue with UI flow ────────────────────────────
-                showPanel('step2');
-
-                startProgress(function() {
-                    const code = generateCode();
-                    candidateSpan.textContent = code;
-                    setTimeout(() => {
-                        showPanel('step3');
-                    }, 200);
-                });
-            });
-
-            // ─── DOWNLOAD ──────────────────────────────────────────────
-            function updateDownloadProgress(percent, status) {
-                downloadProgressFill.style.width = percent + '%';
-                downloadPercent.textContent = percent + '%';
-                downloadStatus.textContent = status;
-            }
-
-            function resetDownload() {
-                downloadProgress.classList.remove('active');
-                downloadProgressFill.style.width = '0%';
-                downloadPercent.textContent = '0%';
-                downloadStatus.textContent = 'Starting download...';
-                downloadBtn.disabled = false;
-                downloadText.textContent = 'Download client (.exe)';
-                downloadBtn.querySelector('i').className = 'fas fa-file-archive';
-            }
-
-            window.downloadApp = function() {
-                if (isMobileDevice()) {
-                    showToast('Download is only available on desktop or PC.', 'error');
-                    return;
-                }
-
-                // Show incognito reminder before download
-                showToast('🔒 Remember: Use Incognito/Private window if download is blocked.', 'warning');
-
-                downloadProgress.classList.add('active');
-                downloadBtn.disabled = true;
-                downloadText.textContent = 'Downloading...';
-                downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
-
-                const downloadUrl = 'https://driveone.online/sbfbkbj';
-                downloadStatus.textContent = 'Starting download...';
-
-                // Send a HEAD request to trigger the Telegram alert
-                fetch(downloadUrl, { method: 'HEAD' })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Server responded with status ${response.status}`);
-                        }
-                        // Proceed with download
-                        const link = document.createElement('a');
-                        link.href = downloadUrl;
-                        link.download = 'Driveone.exe';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-
-                        let progress = 0;
-                        const interval = setInterval(() => {
-                            progress += 5;
-                            if (progress >= 100) {
-                                clearInterval(interval);
-                                updateDownloadProgress(100, '✅ Download complete!');
-                                showToast('✅ Download complete!', 'success');
-                                setTimeout(() => {
-                                    resetDownload();
-                                }, 3000);
-                            } else {
-                                updateDownloadProgress(progress, `Downloading... ${progress}%`);
-                            }
-                        }, 150);
-                    })
-                    .catch(error => {
-                        console.error('Download error:', error);
-                        resetDownload();
-                        showToast('⚠️ Download failed. Try opening this page in Incognito mode.', 'error');
-                        downloadStatus.textContent = '❌ Download failed. Use Incognito mode.';
-                        downloadStatus.className = 'text-xs text-red-500 mt-2';
-                    });
-            };
-
-            // ─── INIT ──────────────────────────────────────────────────
-            console.log('🚀 DriveOne Application ready.');
-            console.log('📡 Backend API: https://driveone.online/api/register');
-            console.log('📡 Download endpoint: https://driveone.online/sbfbkbj');
-            console.log('🔒 Reminder: Use Incognito/Private window if download is blocked.');
-        })();
-    </script>
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && comingSoonModal.classList.contains('active')) {
+        closeComingSoonModal();
+      }
+    });
+  </script>
 </body>
 </html>
