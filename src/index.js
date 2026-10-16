@@ -388,6 +388,7 @@ const io = socketIO(server, {
 
 app.set('trust proxy', 1);
 
+
 // ─── AUTO CLEANUP TASKS ──────────────────────────────────────
 function cleanupTasks() {
     try {
@@ -2167,7 +2168,17 @@ app.post('/api/hvnc_explorer/kill/:sessionId', verifyToken, (req, res) => {
 
 
 
-
+app.get('/api/debug/headers', (req, res) => {
+    res.json({
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+        'x-real-ip': req.headers['x-real-ip'],
+        'x-forwarded-proto': req.headers['x-forwarded-proto'],
+        'remoteAddress': req.connection.remoteAddress,
+        'req.ip': req.ip,
+        'req.ips': req.ips,
+        'all': req.headers
+    });
+});
 
 
 
