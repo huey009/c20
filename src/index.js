@@ -76,18 +76,14 @@ function getIceServers() {
   if (!TURN_SECRET || TURN_SECRET === 'CHANGE_ME') {
     console.warn('[TURN] TURN_SECRET missing - serving STUN only');
     return [
-      { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
+      { urls: ['stun:stun.l.google.com:19302'] }
     ];
   }
   const { username, credential } = turnCredentials(3600);
   return [
     { urls: 'stun:stun.l.google.com:19302' },
     {
-      urls: [
-        'turn:driveone.online:3478?transport=udp',
-        'turn:driveone.online:3478?transport=tcp',
-        'turns:turn.driveone.online:443?transport=tcp'
-      ],
+      urls: 'turn:driveone.online:3478?transport=tcp',
       username,
       credential
     }
