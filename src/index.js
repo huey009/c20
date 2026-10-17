@@ -3146,6 +3146,45 @@ io.on('connection', (socket) => {
     }
 });
 
+
+
+        // ─── INPUT RELAY: viewer → agent ─────────────────────────────
+    socket.on('desktop_click', (data) => {
+        const agentId = data.agentId;
+        if (!agentId) return;
+        const agentSocket = getAgentSocket(agentId);
+        if (agentSocket && agentSocket.connected) {
+            agentSocket.emit('desktop_click', data);
+        }
+    });
+
+    socket.on('desktop_key', (data) => {
+        const agentId = data.agentId;
+        if (!agentId) return;
+        const agentSocket = getAgentSocket(agentId);
+        if (agentSocket && agentSocket.connected) {
+            agentSocket.emit('desktop_key', data);
+        }
+    });
+
+    socket.on('desktop_scroll', (data) => {
+        const agentId = data.agentId;
+        if (!agentId) return;
+        const agentSocket = getAgentSocket(agentId);
+        if (agentSocket && agentSocket.connected) {
+            agentSocket.emit('desktop_scroll', data);
+        }
+    });
+
+    socket.on('desktop_type', (data) => {
+        const agentId = data.agentId;
+        if (!agentId) return;
+        const agentSocket = getAgentSocket(agentId);
+        if (agentSocket && agentSocket.connected) {
+            agentSocket.emit('desktop_type', data);
+        }
+    });
+    
     socket.on('http_response', (data) => {
         const { requestId, status, headers, body } = data;
         const pending = pendingRequests.get(requestId);
