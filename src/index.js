@@ -80,14 +80,13 @@ function getIceServers() {
   return [
     { urls: 'stun:74.125.140.127:19302' },
     {
-      urls: [
-        `turn:${TURN_IP}:3478?transport=udp`,
-        `turn:${TURN_IP}:3478?transport=tcp`,
-        `turns:${TURN_IP}:443?transport=tcp`
-      ],
-      username,
-      credential
-    }
+  urls: [
+    'turn:63.250.44.173:3478?transport=udp',      // IP: UDP relay
+    'turn:63.250.44.173:3478?transport=tcp',      // IP: TCP relay attempt
+    'turns:driveone.online:443?transport=tcp'     // DOMAIN: TLS on 443 (cert-valid)
+  ],
+  username, credential
+}
   ];
 }
 
