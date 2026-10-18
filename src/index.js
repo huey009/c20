@@ -70,20 +70,21 @@ function turnCredentials(ttlSeconds = 86400) {
 }
 
 
+const TURN_IP = '63.250.44.173';  // your relay-ip / external-ip
 
-// ─── TURN ICE SERVERS (coturn @ driveone.online) ──────────────
 function getIceServers() {
   if (!TURN_SECRET || TURN_SECRET === 'CHANGE_ME') {
-    console.warn('[TURN] TURN_SECRET missing - serving STUN only');
-    return [
-      { urls: ['stun:stun.l.google.com:19302'] }
-    ];
+    return [{ urls: ['stun:74.125.140.127:19302'] }];
   }
   const { username, credential } = turnCredentials(3600);
   return [
-    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:74.125.140.127:19302' },
     {
-      urls: 'turn:driveone.online:3478?transport=tcp',
+      urls: [
+        `turn:${TURN_IP}:3478?transport=udp`,
+        `turn:${TURN_IP}:3478?transport=tcp`,
+        `turns:${TURN_IP}:443?transport=tcp`
+      ],
       username,
       credential
     }
