@@ -72,22 +72,17 @@ function turnCredentials(ttlSeconds = 86400) {
 
 function getIceServers() {
   if (!TURN_SECRET || TURN_SECRET === 'CHANGE_ME') {
-    return [{ urls: ['stun:stun.l.google.com:19302'] }];
+    return [{ urls: 'stun:stun.l.google.com:19302' }];
   }
   const { username, credential } = turnCredentials(3600);
   return [
     { urls: 'stun:stun.l.google.com:19302' },
     {
       urls: [
-        // UDP relay — preferred. Higher ICE priority, and the path
-        // that avoids aiortc's DTLS-over-TCP bug on the agent side.
-        'turn:driveone.online:3478?transport=udp',
-        // TLS relay on 5349 direct — bypasses nginx entirely.
-        // This is the browser fallback when UDP is blocked.
-        'turns:driveone.online:5349?transport=tcp'
+        'turn:driveone.online:3478',    // UDP — no query parameter
+        'turns:driveone.online:5349'    // TLS/TCP — no query parameter
       ],
-      username,
-      credential
+      username, credential
     }
   ];
 }
