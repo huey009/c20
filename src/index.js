@@ -74,22 +74,22 @@ const TURN_IP = '63.250.44.173';  // your relay-ip / external-ip
 
 function getIceServers() {
   if (!TURN_SECRET || TURN_SECRET === 'CHANGE_ME') {
-    return [{ urls: ['stun:74.125.140.127:19302'] }];
+    return [{ urls: ['stun:stun.l.google.com:19302'] }];
   }
   const { username, credential } = turnCredentials(3600);
   return [
-    { urls: 'stun:74.125.140.127:19302' },
+    { urls: 'stun:stun.l.google.com:19302' },
     {
-  urls: [
-    'turn:63.250.44.173:3478?transport=udp',      // IP: UDP relay
-    'turn:63.250.44.173:3478?transport=tcp',      // IP: TCP relay attempt
-    'turns:driveone.online:443?transport=tcp'     // DOMAIN: TLS on 443 (cert-valid)
-  ],
-  username, credential
-}
+      urls: [
+        // UDP relay — the stable path, matches the friend's working setup.
+        'turn:driveone.online:3478?transport=udp',
+        // TLS on 5349 directly — bypasses nginx, coturn sees the real client IP.
+        'turns:driveone.online:5349?transport=tcp'
+      ],
+      username, credential
+    }
   ];
 }
-
 // ─── WEBRTC SESSION MANAGEMENT ─────────────────────────────────
 function createWebRTCSession(sessionId, agentId) {
     if (!webrtcSessions.has(sessionId)) {
