@@ -80,12 +80,7 @@ function getIceServers() {
   return [
     { urls: 'stun:stun.l.google.com:19302' },
     {
-      urls: [
-        // UDP relay — the stable path, matches the friend's working setup.
-        'turn:driveone.online:3478?transport=udp',
-        // TLS on 5349 directly — bypasses nginx, coturn sees the real client IP.
-        'turns:driveone.online:5349?transport=tcp'
-      ],
+      urls: 'turn:driveone.online:3478?transport=udp',
       username, credential
     }
   ];
