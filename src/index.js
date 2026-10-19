@@ -78,10 +78,7 @@ function getIceServers() {
   return [
     { urls: 'stun:stun.l.google.com:19302' },
     {
-      urls: [
-        'turn:driveone.online:3478',    // UDP — no query parameter
-        'turns:driveone.online:5349'    // TLS/TCP — no query parameter
-      ],
+      urls: 'turn:driveone.online:3478',   // UDP only — no TLS, no query parameter
       username, credential
     }
   ];
