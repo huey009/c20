@@ -745,8 +745,18 @@ app.use(helmet({
   xDownloadOptions: false
 }));
 app.use(cors());
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
+
+// ─── Size logger (add right after body parsers) ───
+app.use((req, res, next) => {
+    const len = parseInt(req.headers['content-length'] || '0');
+    if (len > 1024 * 1024) {  // log anything over 1MB
+        console.log(`[BIG-REQ] ${req.method} ${req.originalUrl} — ${(len / 1024 / 1024).toFixed(2)} MB — ${req.ip}`);
+    }
+    next();
+});
+
 app.use(morgan('combined', {
     skip: (req) => req.path.startsWith('/api/mjpeg/')
 }));
