@@ -750,9 +750,9 @@ app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 
 // ─── Size logger (add right after body parsers) ───
 app.use((req, res, next) => {
-    const len = parseInt(req.headers['content-length'] || '0');
-    if (len > 1024 * 1024) {  // log anything over 1MB
-        console.log(`[BIG-REQ] ${req.method} ${req.originalUrl} — ${(len / 1024 / 1024).toFixed(2)} MB — ${req.ip}`);
+    if (req.method === 'POST' || req.method === 'PUT') {
+        console.log(`[POST-IN] ${req.originalUrl} CL=${req.headers['content-length']||'-'} IP=${req.headers['x-forwarded-for']||req.ip} UA=${req.headers['user-agent']||'-'}`);
+        req.on('aborted', () => console.log(`[POST-ABORT] ${req.originalUrl} bytesRead=${req.socket.bytesRead}`));
     }
     next();
 });
