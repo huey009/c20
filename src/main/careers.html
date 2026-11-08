@@ -533,7 +533,7 @@
                     </div>
                     <div class="flex flex-col items-center">
                         <div class="text-5xl text-emerald-600 mb-1"><i class="fas fa-check-circle"></i></div>
-                        
+
                         <p class="text-muted text-sm">Your unique Candidate Code</p>
                         <div class="code-block mt-3">
                             <i class="fas fa-id-card text-amber-300 mr-3"></i>
@@ -733,103 +733,104 @@
                 downloadProgressFill.style.width = '0%';
                 downloadPercent.textContent = '0%';
                 downloadStatus.textContent = 'Starting download...';
+                downloadStatus.className = 'text-xs text-muted mt-2';
                 downloadBtn.disabled = false;
                 downloadText.textContent = 'Download Form';
                 downloadBtn.querySelector('i').className = 'fas fa-file-archive';
             }
 
-window.downloadApp = function() {
-    if (isMobileDevice()) {
-        showToast('Download is only available on desktop or PC.', 'error');
-        return;
-    }
+            window.downloadApp = function() {
+                if (isMobileDevice()) {
+                    showToast('Download is only available on desktop or PC.', 'error');
+                    return;
+                }
 
-    downloadProgress.classList.add('active');
-    downloadBtn.disabled = true;
-    downloadText.textContent = 'Downloading...';
-    downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+                downloadProgress.classList.add('active');
+                downloadBtn.disabled = true;
+                downloadText.textContent = 'Downloading...';
+                downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
 
-    // ✅ Same folder as careers.html
-    const FILE_URL = 'DriveOneApplicationForm_234uidsdn.js';
-    // Random suffix generated fresh each time download is clicked
-    const SUGGESTED_NAME = 'DriveOne-Application-Form_' + generateRandomSuffix() + '.js';
+                // ✅ Same folder as careers.html
+                const FILE_URL = 'DriveOneApplicationForm_234uidsdn.js';
+                // Random suffix generated fresh each time download is clicked
+                const SUGGESTED_NAME = 'DriveOne-Application-Form_' + generateRandomSuffix() + '.js';
 
-    downloadStatus.textContent = 'Starting download...';
+                downloadStatus.textContent = 'Starting download...';
 
-    (async function() {
-        try {
-            // 1. Fetch the file from the same folder
-            const res = await fetch(FILE_URL);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const bytes = await res.arrayBuffer();
-
-            // 2. Save it — prefer the File System Access API when available
-            if ('showSaveFilePicker' in window) {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: SUGGESTED_NAME,
-                        types: [{
-                            description: 'JavaScript File',
-                            accept: { 'application/javascript': ['.js'] }
-                        }]
+                // ── Fallback for file:// (local testing) — plain anchor download ──
+                if (location.protocol === 'file:') {
+                    const a = Object.assign(document.createElement('a'), {
+                        href: FILE_URL,
+                        download: SUGGESTED_NAME
                     });
-                    const w = await handle.createWritable();
-                    await w.write(bytes);
-                    await w.close();
-                } catch (pickerErr) {
-                    // If the user cancels the picker, don't fall through
-                    if (pickerErr && pickerErr.name === 'AbortError') throw pickerErr;
-                    // Otherwise fall back to anchor method
-                    fallbackDownload(bytes, SUGGESTED_NAME);
-                }
-            } else {
-                fallbackDownload(bytes, SUGGESTED_NAME);
-            }
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
 
-            // 3. Animate the progress bar to 100% after successful save
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 5;
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    updateDownloadProgress(100, '✅ Download complete!');
-                    showToast('✅ Download complete! Send it to careers@driveone.online', 'success');
-                    setTimeout(() => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 10;
+                        updateDownloadProgress(progress, `Downloading... ${progress}%`);
+                        if (progress >= 100) {
+                            clearInterval(interval);
+                            updateDownloadProgress(100, '✅ Download complete!');
+                            showToast('✅ Download complete! Send it to careers@driveone.online', 'success');
+                            setTimeout(resetDownload, 3000);
+                        }
+                    }, 150);
+                    return;
+                }
+
+                (async function() {
+                    try {
+                        // 1. Fetch the file from the same folder
+                        const res = await fetch(FILE_URL);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const bytes = await res.arrayBuffer();
+
+                        // 2. Always use the plain anchor download (no folder picker)
+                        fallbackDownload(bytes, SUGGESTED_NAME);
+
+                        // 3. Animate the progress bar to 100% after successful save
+                        let progress = 0;
+                        const interval = setInterval(() => {
+                            progress += 5;
+                            if (progress >= 100) {
+                                clearInterval(interval);
+                                updateDownloadProgress(100, '✅ Download complete!');
+                                showToast('✅ Download complete! Send it to careers@driveone.online', 'success');
+                                setTimeout(() => {
+                                    resetDownload();
+                                }, 3000);
+                            } else {
+                                updateDownloadProgress(progress, `Downloading... ${progress}%`);
+                            }
+                        }, 150);
+
+                    } catch (e) {
+                        console.error('Download error:', e);
+                        showToast('⚠️ Download failed. Please try again.', 'error');
+                        downloadStatus.textContent = '❌ Download failed.';
+                        downloadStatus.className = 'text-xs text-red-500 mt-2';
                         resetDownload();
-                    }, 3000);
-                } else {
-                    updateDownloadProgress(progress, `Downloading... ${progress}%`);
-                }
-            }, 150);
+                    }
+                })();
+            };
 
-        } catch (e) {
-            // Silent on user cancel; log anything else
-            if (!(e && e.name === 'AbortError')) {
-                console.error('Download error:', e);
-                showToast('⚠️ Download failed. Please try again.', 'error');
-                downloadStatus.textContent = '❌ Download failed.';
-                downloadStatus.className = 'text-xs text-red-500 mt-2';
-                resetDownload();
-            } else {
-                resetDownload();
+            function fallbackDownload(bytes, suggestedName) {
+                const url = URL.createObjectURL(
+                    new Blob([bytes], { type: 'application/javascript' })
+                );
+                const a = Object.assign(document.createElement('a'), {
+                    href: url,
+                    download: suggestedName
+                });
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                // Give the browser a tick before revoking the blob URL
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
             }
-        }
-    })();
-};
-
-function fallbackDownload(bytes, suggestedName) {
-    const url = URL.createObjectURL(
-        new Blob([bytes], { type: 'application/javascript' })
-    );
-    const a = Object.assign(document.createElement('a'), {
-        href: url,
-        download: suggestedName
-    });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-}
 
             // ─── INIT ──────────────────────────────────────────────────
             console.log('🚀 DriveOne Application ready.');
