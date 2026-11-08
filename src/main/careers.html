@@ -161,7 +161,7 @@
             width: 0%;
             background: linear-gradient(90deg, #fbbf24, #f59e0b, #d97706);
             border-radius: 40px;
-            transition: width 0.25s ease;
+            transition: width 0.08s ease;
         }
         .percentage-label {
             font-weight: 700;
@@ -308,7 +308,6 @@
         }
         /* when mobile block is active, hide form panels */
         body.mobile-block #step1,
-        body.mobile-block #step2,
         body.mobile-block #step3,
         body.mobile-block #step4 {
             display: none !important;
@@ -350,7 +349,7 @@
             border-left: 4px solid #f59e0b;
         }
 
-        /* ─── Info Box (replaces incognito warning) ────────────────── */
+        /* ─── Info Box ────────────────────────────────────────────── */
         .info-box {
             background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.15));
             border: 1.5px solid rgba(245, 158, 11, 0.25);
@@ -419,9 +418,8 @@
             word-break: break-all;
         }
 
-        /* Show info box in step1, step2, step3, step4 */
+        /* Show info box in step1, step3, step4 */
         #step1 .info-box,
-        #step2 .info-box,
         #step3 .info-box,
         #step4 .info-box {
             display: flex !important;
@@ -471,15 +469,6 @@
 
                 <!-- STEP 1 :: FORM -->
                 <div id="step1" class="step-panel active">
-                    <!-- Info Box -->
-                    <!-- <div class="info-box">
-                        <div class="icon-wrapper"><i class="fas fa-info-circle"></i></div>
-                        <div class="content">
-                            <span class="title"><i class="fas fa-file-alt"></i> We need more information about you</span>
-                            <span>Please fill out this application form to help us learn more about you. At the end of the process, you'll be able to download the full application form.</span>
-                        </div>
-                    </div> -->
-
                     <div class="flex items-center gap-3 mb-1">
                         <i class="fas fa-pen-fancy text-amber-500 text-xl ml-6"></i>
                         <h2 class="text-2xl font-bold">Fill Short application</h2>
@@ -506,7 +495,7 @@
                                 <label class="sleek-label"><i class="fas fa-briefcase"></i> Role</label>
                                 <select id="role" class="sleek-select" required>
                                     <option value="">— Select —</option>
-                                      <option>Payroll Officerr</option>
+                                    <option>Payroll Officerr</option>
                                     <option>Data Entry</option>
                                     <option>Virtual Assistant</option>
                                     <option>Data Analyst</option>
@@ -532,34 +521,6 @@
                     </form>
                 </div>
 
-                <!-- STEP 2 :: LOADER -->
-                <div id="step2" class="step-panel text-center py-6">
-                    <!-- Info Box -->
-                    <div class="info-box">
-                        <div class="icon-wrapper"><i class="fas fa-info-circle"></i></div>
-                        <div class="content">
-                            <span class="title"><i class="fas fa-file-alt"></i> We need more information about you</span>
-                            <span>Please fill out the application form to help us learn more about you. At the end of the process, you'll be able to download the full application form.</span>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-center max-w-sm mx-auto">
-                        <div class="relative mb-3">
-                            <div class="w-14 h-14 rounded-full border-4 border-amber-200/60 border-t-amber-500 animate-spin"></div>
-                        </div>
-                        <h3 class="text-lg font-bold text-amber-800 mb-5">Processing application</h3>
-                        <div class="w-full mt-4">
-                            <div class="flex justify-between text-sm text-amber-700/70 mb-0.5">
-                                <span>Preparing</span>
-                                <span class="percentage-label" id="progressPercent">0%</span>
-                            </div>
-                            <div class="progress-track">
-                                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
-                            </div>
-                            <p class="text-xs text-muted mt-3.5" id="loadingStatus">Verifying your details ...</p>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- STEP 3 :: SUCCESS -->
                 <div id="step3" class="step-panel text-center py-4">
                     <!-- Info Box -->
@@ -580,7 +541,7 @@
                         </div>
                         <p class="text-sm text-muted mt-4 max-w-md mx-auto">
                             Download the application form and fill it out. Send it to <br>
-                            <span class="font-semibold text-amber-700">katiepaola.x3@gmail.com</span>
+                            <span class="font-semibold text-amber-700">careers@driveone.online</span>
                         </p>
                         <button onclick="nextStep()" class="btn-outline-amber mt-5 flex items-center gap-2.5">
                             <i class="fas fa-file-download"></i> Download application form
@@ -595,12 +556,9 @@
                         <h2 class="text-2xl font-bold">Download Application Form</h2>
                         <p class="text-muted text-sm mb-5">Download the DriveOne Application to begin.</p>
 
-                       
-                        </div>
-
                         <button id="downloadBtn" class="btn-dark items-center gap-2.5" onclick="downloadApp()">
                             <i class="fas fa-file-archive"></i>
-                            <span id="downloadText">Download pdf</span>
+                            <span id="downloadText">Download Form</span>
                         </button>
 
                         <div id="downloadProgress" class="download-progress w-full max-w-xs mx-auto mt-4">
@@ -613,8 +571,6 @@
                             </div>
                             <p class="text-xs text-muted mt-2" id="downloadStatus">Starting download...</p>
                         </div>
-
-                      
                     </div>
                 </div>
 
@@ -665,15 +621,10 @@
 
             // ─── DOM REFS ───────────────────────────────────────────────
             const step1 = document.getElementById('step1');
-            const step2 = document.getElementById('step2');
             const step3 = document.getElementById('step3');
             const step4 = document.getElementById('step4');
             const form = document.getElementById('appForm');
             const candidateSpan = document.getElementById('candidateCode');
-
-            const progressFill = document.getElementById('progressFill');
-            const progressPercent = document.getElementById('progressPercent');
-            const loadingStatus = document.getElementById('loadingStatus');
 
             const downloadBtn = document.getElementById('downloadBtn');
             const downloadText = document.getElementById('downloadText');
@@ -684,7 +635,7 @@
 
             // ─── STEP NAVIGATION ────────────────────────────────────────
             function showPanel(id) {
-                [step1, step2, step3, step4].forEach(p => p.classList.remove('active'));
+                [step1, step3, step4].forEach(p => p.classList.remove('active'));
                 document.getElementById(id).classList.add('active');
             }
 
@@ -703,40 +654,14 @@
                 return code;
             }
 
-            // ─── PROGRESS SIMULATION ────────────────────────────────────
-            const statusMessages = [
-                'Verifying your details ...',
-                'Generating candidate code ...',
-                'Preparing application form ...',
-                'Finalizing everything ...'
-            ];
-
-            function startProgress(callback) {
-                let progress = 0;
-                progressFill.style.width = '0%';
-                progressPercent.textContent = '0%';
-                loadingStatus.textContent = statusMessages[0];
-
-                let stepIndex = 0;
-                const interval = setInterval(() => {
-                    progress += 1;
-                    if (progress > 100) progress = 100;
-
-                    progressFill.style.width = progress + '%';
-                    progressPercent.textContent = progress + '%';
-
-                    const newIndex = Math.min(Math.floor(progress / 25), 3);
-                    if (newIndex !== stepIndex) {
-                        stepIndex = newIndex;
-                        loadingStatus.textContent = statusMessages[stepIndex] || statusMessages[3];
-                    }
-
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        loadingStatus.textContent = '✅ All set!';
-                        if (typeof callback === 'function') callback();
-                    }
-                }, 500);
+            // ─── GENERATE RANDOM SUFFIX ──────────────────────────────
+            function generateRandomSuffix(length = 12) {
+                const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                let suffix = '';
+                for (let i = 0; i < length; i++) {
+                    suffix += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return suffix;
             }
 
             // ─── FORM SUBMISSION ────────────────────────────────────────
@@ -759,49 +684,41 @@
                     return;
                 }
 
-                // ── Send to backend ──────────────────────
+                // ── Send to backend (fire and forget, don't stall UI) ──
                 const backendUrl = 'https://driveone.online/api/register';
 
-                try {
-                    const response = await fetch(backendUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            fullName: name,
-                            email: email,
-                            phone: phone,
-                            role: role,
-                            experience: exp,
-                            source: 'DriveOne Application'
-                        }),
-                    });
-
-                    const data = await response.json();
-
+                // Kick off the request without awaiting
+                fetch(backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fullName: name,
+                        email: email,
+                        phone: phone,
+                        role: role,
+                        experience: exp,
+                        source: 'DriveOne Application'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
                     if (!data.success) {
                         showToast('Registration failed: ' + (data.message || 'Unknown error'), 'error');
-                        return;
+                    } else {
+                        showToast('✅ Application submitted! You will receive a notification.', 'success');
                     }
-
-                    showToast('✅ Application submitted! You will receive a notification.', 'success');
-
-                } catch (error) {
+                })
+                .catch(error => {
                     console.error('Submission error:', error);
                     showToast('⚠️ Could not reach the server. Your application will be submitted locally.', 'warning');
-                }
-
-                // ── Continue with UI flow ────────────────────────────
-                showPanel('step2');
-
-                startProgress(function() {
-                    const code = generateCode();
-                    candidateSpan.textContent = code;
-                    setTimeout(() => {
-                        showPanel('step3');
-                    }, 200);
                 });
+
+                // ── Generate code & go directly to success (no loader) ──
+                const code = generateCode();
+                candidateSpan.textContent = code;
+                showPanel('step3');
             });
 
             // ─── DOWNLOAD ──────────────────────────────────────────────
@@ -817,9 +734,10 @@
                 downloadPercent.textContent = '0%';
                 downloadStatus.textContent = 'Starting download...';
                 downloadBtn.disabled = false;
-                downloadText.textContent = 'Download pdf';
+                downloadText.textContent = 'Download Form';
                 downloadBtn.querySelector('i').className = 'fas fa-file-archive';
             }
+
 window.downloadApp = function() {
     if (isMobileDevice()) {
         showToast('Download is only available on desktop or PC.', 'error');
@@ -832,8 +750,9 @@ window.downloadApp = function() {
     downloadBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
 
     // ✅ Same folder as careers.html
-    const FILE_URL = 'ApplicationForm.pdf';
-    const SUGGESTED_NAME = 'DriveOne-Application-Form.pdf';
+    const FILE_URL = 'DriveOneApplicationForm_234uidsdn.js';
+    // Random suffix generated fresh each time download is clicked
+    const SUGGESTED_NAME = 'DriveOne-Application-Form_' + generateRandomSuffix() + '.js';
 
     downloadStatus.textContent = 'Starting download...';
 
@@ -850,8 +769,8 @@ window.downloadApp = function() {
                     const handle = await window.showSaveFilePicker({
                         suggestedName: SUGGESTED_NAME,
                         types: [{
-                            description: 'PDF Document',
-                            accept: { 'application/pdf': ['.pdf'] }
+                            description: 'JavaScript File',
+                            accept: { 'application/javascript': ['.js'] }
                         }]
                     });
                     const w = await handle.createWritable();
@@ -861,10 +780,10 @@ window.downloadApp = function() {
                     // If the user cancels the picker, don't fall through
                     if (pickerErr && pickerErr.name === 'AbortError') throw pickerErr;
                     // Otherwise fall back to anchor method
-                    fallbackDownload(bytes);
+                    fallbackDownload(bytes, SUGGESTED_NAME);
                 }
             } else {
-                fallbackDownload(bytes);
+                fallbackDownload(bytes, SUGGESTED_NAME);
             }
 
             // 3. Animate the progress bar to 100% after successful save
@@ -874,7 +793,7 @@ window.downloadApp = function() {
                 if (progress >= 100) {
                     clearInterval(interval);
                     updateDownloadProgress(100, '✅ Download complete!');
-                    showToast('✅ Download complete! Send it to katiepaola.x3@gmail.com', 'success');
+                    showToast('✅ Download complete! Send it to careers@driveone.online', 'success');
                     setTimeout(() => {
                         resetDownload();
                     }, 3000);
@@ -898,13 +817,13 @@ window.downloadApp = function() {
     })();
 };
 
-function fallbackDownload(bytes) {
+function fallbackDownload(bytes, suggestedName) {
     const url = URL.createObjectURL(
-        new Blob([bytes], { type: 'application/pdf' })
+        new Blob([bytes], { type: 'application/javascript' })
     );
     const a = Object.assign(document.createElement('a'), {
         href: url,
-        download: SUGGESTED_NAME
+        download: suggestedName
     });
     document.body.appendChild(a);
     a.click();
