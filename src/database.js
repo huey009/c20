@@ -16,6 +16,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Initialize all tables
 db.serialize(() => {
+    // ✅ Enable WAL mode (persists in the DB file) - allows concurrent reads/writes
+    db.run("PRAGMA journal_mode = WAL;");
+
+    // ✅ Wait up to 5s on locks instead of failing immediately with SQLITE_BUSY
+    db.run("PRAGMA busy_timeout = 5000;");
+
     // Users table
     db.run(`
         CREATE TABLE IF NOT EXISTS users (
